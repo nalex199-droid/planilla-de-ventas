@@ -30,30 +30,37 @@ Tiempo estimado: **25-35 minutos**.
 
 ### Paso 1 — Subir el proyecto a GitHub
 
-1. Crea un repositorio nuevo en https://github.com/new (público o privado, ambos sirven para Vercel gratis). Nómbralo por ejemplo `plantilla-ventas`.
-2. En tu computadora, clona el repo:
+El proyecto ya está configurado con el remote de tu repositorio:
+```
+origin: https://github.com/nalex199-droid/planilla-de-ventas.git
+```
+
+Tienes dos opciones para subir el código:
+
+**Opción A — Desde tu computadora (recomendado)**:
+1. Descarga el archivo `plantilla-ventas.zip` que está en la carpeta `download/` del sandbox
+2. Descomprime el ZIP en tu computadora
+3. Abre una terminal en la carpeta descomprimida
+4. Ejecuta:
    ```bash
-   git clone https://github.com/TU_USUARIO/plantilla-ventas.git
-   cd plantilla-ventas
-   ```
-3. Copia **todos los archivos de este proyecto** dentro de la carpeta clonada.
-4. Haz el primer commit:
-   ```bash
+   git init -b main
+   git remote add origin https://github.com/nalex199-droid/planilla-de-ventas.git
    git add .
    git commit -m "Plantilla de Ventas - versión inicial con Google Sheets"
-   git push origin main
+   git push -u origin main
    ```
+   Te pedirá tu usuario y Personal Access Token de GitHub (no tu contraseña normal — genera un PAT en https://github.com/settings/tokens con scope `repo`).
 
-> **Tip**: Si no quieres clonar, puedes subir los archivos directamente desde la interfaz web de GitHub (botón "uploading an existing file").
+**Opción B — Desde el sandbox**:
+Si le pasas al asistente un Personal Access Token de GitHub (generado en https://github.com/settings/tokens con scope `repo`), puede hacer el push automáticamente. **Importante**: revoca el token después de que el push se complete (botón "Delete" en https://github.com/settings/tokens).
 
 ### Paso 2 — Crear el Google Sheet
 
-1. Ve a https://sheets.new (se abre un Google Sheet vacío).
-2. Renómbralo a "Plantilla de Ventas" (arriba a la izquierda).
-3. Copia el **ID del Sheet** de la URL: `https://docs.google.com/spreadsheets/d/ESTE_ES_EL_ID/edit` — los caracteres entre `/d/` y `/edit`.
-4. Guarda ese ID para el Paso 4.
+Tu Google Sheet ya está creado con ID `18jZAZ10ydSw11EJ4_bLT0KKQnx2k-NrXRY2Z8IfVKFg`.
 
-> No necesitas crear hojas manualmente — el script del Paso 5 las crea automáticamente.
+URL directa: https://docs.google.com/spreadsheets/d/18jZAZ10ydSw11EJ4_bLT0KKQnx2k-NrXRY2Z8IfVKFg/edit
+
+> No necesitas crear las hojas manualmente — el script del Paso 5 las crea automáticamente.
 
 ### Paso 3 — Crear la Google Service Account
 
@@ -86,7 +93,7 @@ npm install
 # Ejecuta el seed (crea las 4 hojas, encabezados y usuarios por defecto)
 GOOGLE_SERVICE_ACCOUNT_EMAIL="plantilla-sheets@plantilla-ventas.iam.gserviceaccount.com" \
 GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEv...\n-----END PRIVATE KEY-----\n" \
-GOOGLE_SHEET_ID="el-id-que-copiaste-en-paso-2" \
+GOOGLE_SHEET_ID=18jZAZ10ydSw11EJ4_bLT0KKQnx2k-NrXRY2Z8IfVKFg \
 npx tsx scripts/seed-google-sheets.ts
 ```
 
@@ -105,7 +112,7 @@ Si todo salió bien, verás `✅ Google Sheet inicializado correctamente` y podr
 |------|-------|
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | El email de la service account |
 | `GOOGLE_PRIVATE_KEY` | La private key completa (con `\n` incluidos) |
-| `GOOGLE_SHEET_ID` | El ID del Sheet |
+| `GOOGLE_SHEET_ID` | `18jZAZ10ydSw11EJ4_bLT0KKQnx2k-NrXRY2Z8IfVKFg` |
 | `AUTH_SECRET` | Una cadena aleatoria de 32+ caracteres (genera con `openssl rand -hex 32` o usa cualquier texto largo aleatorio) |
 
 5. Clic en **Deploy**. En 1-2 minutos Vercel despliega la app y te da una URL pública tipo `https://plantilla-ventas.vercel.app`.
