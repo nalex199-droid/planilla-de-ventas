@@ -1,0 +1,63 @@
+# Dependencias
+node_modules/
+.pnp
+.pnp.js
+.yarn/
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Producción
+*.tsbuildinfo
+next-env.d.ts
+
+# Variables de entorno (¡NUNCA subir credenciales!)
+.env
+.env.local
+.env.development
+.env.production
+.env.development.local
+.env.production.local
+*.env.local
+
+# Vercel
+.vercel
+
+# Debug y logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+bun-debug.log*
+dev.log
+server.log
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Base de datos local (si decides usar SQLite para desarrollo)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
+
+# Archivos temporales y de prueba
+/tmp
+*.tmp
+
+# Sandbox
+.zscripts/
+upload/
+
+# Skills (internos)
+skills/
+agent-ctx/
