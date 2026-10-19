@@ -88,6 +88,40 @@ export function DashboardResumen({ data }: { data: DashboardData }) {
         </div>
       </Card>
 
+      {/* Resumen por Modalidad de Pago — cards separadas como en el Excel original */}
+      <div>
+        <h3 className="text-base font-semibold text-emerald-700 mb-3">Resumen por Modalidad de Pago</h3>
+
+        {/* Grupo BS (Bolívares) */}
+        <div className="mb-4">
+          <div className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2">Modalidades en BS</div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <ModalidadCard label="Pago BS (Efectivo)" value={data.porModalidad.pagoEfectivoBs} suffix="Bs" color="amber" />
+            <ModalidadCard label="Débito B/Amiga" value={data.porModalidad.debitoBAmiga} suffix="Bs" color="teal" />
+            <ModalidadCard label="Débito B/Venezuela" value={data.porModalidad.debitoBVZla} suffix="Bs" color="cyan" />
+            <ModalidadCard label="Bio Pago" value={data.porModalidad.bioPago} suffix="Bs" color="rose" />
+            <ModalidadCard label="Pago Móvil (PM)" value={data.porModalidad.pm} suffix="Bs" color="purple" />
+            <ModalidadCard label="VPM" value={data.porModalidad.vpm} suffix="Bs" color="pink" />
+          </div>
+          <div className="mt-2 text-sm font-semibold text-amber-700 text-right">
+            Total BS: {fmt(data.porModalidad.pagoEfectivoBs + data.porModalidad.debitoBAmiga + data.porModalidad.debitoBVZla + data.porModalidad.bioPago + data.porModalidad.pm + data.porModalidad.vpm)} Bs
+          </div>
+        </div>
+
+        {/* Grupo USD (Dólares) */}
+        <div>
+          <div className="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-2">Modalidades en USD ($)</div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <ModalidadCard label="Pago $ (Efectivo)" value={data.porModalidad.pagoEfectivoUsd} suffix="$" color="emerald" />
+            <ModalidadCard label="Binance" value={data.porModalidad.binance} suffix="$" color="orange" />
+            <ModalidadCard label="Zelle" value={data.porModalidad.zelle} suffix="$" color="lime" />
+          </div>
+          <div className="mt-2 text-sm font-semibold text-emerald-700 text-right">
+            Total $: ${fmt(data.porModalidad.pagoEfectivoUsd + data.porModalidad.binance + data.porModalidad.zelle)}
+          </div>
+        </div>
+      </div>
+
       {/* Por asesor */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="p-5">
@@ -130,14 +164,36 @@ export function DashboardResumen({ data }: { data: DashboardData }) {
             <ModalidadBar label="Pago $ (Efectivo)" value={data.porModalidad.pagoEfectivoUsd} total={t.totalMontoUsd} color="bg-emerald-500" />
             <ModalidadBar label="Pago BS (Efectivo)" value={data.porModalidad.pagoEfectivoBs} total={t.totalMontoBs} color="bg-amber-500" />
             <ModalidadBar label="Débito B/Amiga" value={data.porModalidad.debitoBAmiga} total={t.totalMontoBs} color="bg-teal-500" />
-            <ModalidadBar label="Débito B/VZLA" value={data.porModalidad.debitoBVZla} total={t.totalMontoBs} color="bg-cyan-500" />
+            <ModalidadBar label="Débito B/Venezuela" value={data.porModalidad.debitoBVZla} total={t.totalMontoBs} color="bg-cyan-500" />
             <ModalidadBar label="Bio Pago" value={data.porModalidad.bioPago} total={t.totalMontoBs} color="bg-rose-500" />
-            <ModalidadBar label="Pago Móvil" value={data.porModalidad.pm} total={t.totalMontoBs} color="bg-purple-500" />
+            <ModalidadBar label="Pago Móvil (PM)" value={data.porModalidad.pm} total={t.totalMontoBs} color="bg-purple-500" />
             <ModalidadBar label="Binance" value={data.porModalidad.binance} total={t.totalMontoUsd} color="bg-orange-500" />
             <ModalidadBar label="Zelle" value={data.porModalidad.zelle} total={t.totalMontoUsd} color="bg-lime-500" />
             <ModalidadBar label="VPM" value={data.porModalidad.vpm} total={t.totalMontoBs} color="bg-pink-500" />
           </div>
         </Card>
+      </div>
+    </div>
+  )
+}
+
+function ModalidadCard({ label, value, suffix, color }: { label: string; value: number; suffix: string; color: string }) {
+  const colorMap: Record<string, string> = {
+    amber: 'border-amber-300 bg-amber-50 text-amber-800',
+    teal: 'border-teal-300 bg-teal-50 text-teal-800',
+    cyan: 'border-cyan-300 bg-cyan-50 text-cyan-800',
+    rose: 'border-rose-300 bg-rose-50 text-rose-800',
+    purple: 'border-purple-300 bg-purple-50 text-purple-800',
+    pink: 'border-pink-300 bg-pink-50 text-pink-800',
+    emerald: 'border-emerald-300 bg-emerald-50 text-emerald-800',
+    orange: 'border-orange-300 bg-orange-50 text-orange-800',
+    lime: 'border-lime-300 bg-lime-50 text-lime-800',
+  }
+  return (
+    <div className={`border-2 rounded-md p-3 ${colorMap[color] ?? colorMap.amber}`}>
+      <div className="text-[10px] font-semibold uppercase tracking-wide opacity-80 mb-1">{label}</div>
+      <div className="text-lg font-bold">
+        {suffix === '$' ? '$' : ''}{fmt(value)}{suffix === 'Bs' ? ' Bs' : ''}
       </div>
     </div>
   )
