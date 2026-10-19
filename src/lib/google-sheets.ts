@@ -21,9 +21,21 @@ interface DemoUser { username: string; password_hash: string; name: string; role
 interface DemoVenta { row: number; values: (string | number)[] }
 interface DemoTasa { fecha: string; bcv: number; monitor: number }
 
-const demoUsers: DemoUser[] = []
-const demoVentas: DemoVenta[] = []
-const demoTasas: DemoTasa[] = []
+// Usar globalThis para que las variables sobrevivan a hot reloads en desarrollo
+const g = globalThis as unknown as {
+  __pvDemoUsers?: DemoUser[]
+  __pvDemoVentas?: DemoVenta[]
+  __pvDemoTasas?: DemoTasa[]
+  __pvDemoSeeded?: boolean
+}
+g.__pvDemoUsers ??= []
+g.__pvDemoVentas ??= []
+g.__pvDemoTasas ??= []
+g.__pvDemoSeeded ??= false
+
+const demoUsers = g.__pvDemoUsers
+const demoVentas = g.__pvDemoVentas
+const demoTasas = g.__pvDemoTasas
 
 export function isDemoMode(): boolean {
   return !process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ||
@@ -32,6 +44,8 @@ export function isDemoMode(): boolean {
 }
 
 async function ensureDemoSeed() {
+  if (g.__pvDemoSeeded) return
+  g.__pvDemoSeeded = true
   if (demoUsers.length === 0) {
     const bcrypt = await import('bcryptjs')
     const users = [
