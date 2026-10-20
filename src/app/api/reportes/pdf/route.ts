@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth'
 import { readRange } from '@/lib/google-sheets'
-import PdfPrinter from 'pdfmake'
 
-// Tipos de fuentes para pdfmake
+// Tipos de fuentes para pdfmake (cargados dinámicamente)
 const fonts = {
   Roboto: {
     normal: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Regular.ttf',
@@ -14,7 +13,21 @@ const fonts = {
   },
 }
 
-const printer = new PdfPrinter(fonts)
+// pdfmake v0.3.x: require devuelve una instancia ya creada con método setFonts + createPdf
+async function getPdfBuffer(docDefinition: any): Promise<Buffer> {
+  // Cargar pdfmake dinámicamente (evita problemas en build)
+  const pdfmake: any = await import('pdfmake').then(m => (m as any).default ?? m)
+  // Si es un módulo ES, default es la instancia
+  const instance = pdfmake.default ?? pdfmake
+  // Configurar fonts
+  if (typeof instance.setFonts === 'function') {
+    instance.setFonts(fonts)
+  }
+  // Crear el PDF
+  const doc = instance.createPdf(docDefinition)
+  // getBuffer() devuelve una Promise<Buffer>
+  return await doc.getBuffer()
+}
 
 function n(v: string | number | undefined): number {
   if (v === undefined || v === '') return 0
@@ -295,17 +308,7 @@ export async function GET(req: Request) {
     },
   }
 
-  const pdfDoc = printer.createPdfKitDocument(docDefinition)
-  const chunks: Buffer[] = []
-  pdfDoc.on('data', (chunk: Buffer) => chunks.push(chunk))
-
-  await new Promise<void>((resolve, reject) => {
-    pdfDoc.on('end', () => resolve())
-    pdfDoc.on('error', reject)
-    pdfDoc.end()
-  })
-
-  const buffer = Buffer.concat(chunks)
+  const buffer = await getPdfBuffer(docDefinition)
   const filename = `Reporte_Ventas_${fechaParam}.pdf`
 
   return new NextResponse(buffer, {
