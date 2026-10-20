@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
+import { DollarSign, ShoppingCart, Bitcoin, Wallet, Smartphone, CreditCard, Banknote, Plus, Zap } from 'lucide-react'
 
 interface TasaInfo { bcv: number; monitor: number }
 interface Props {
@@ -21,11 +22,52 @@ const TASA_OPTIONS = [
   { value: 'monitor', label: 'Monitor (paralelo)' },
 ]
 
+// Catálogo de productos rápidos (estilo supermercado/POS)
+interface ProductoRapido {
+  id: string
+  nombre: string
+  descripcion: string
+  cantidad: number
+  costoUni?: (tasa: TasaInfo | null) => number
+  categoria: 'divisas' | 'pagos' | 'rapidos'
+  color: string
+  icon: any
+  // campo de pago a rellenar y monto
+  pago?: { campo: string; monto: number }
+}
+
+const PRODUCTOS_RAPIDOS: ProductoRapido[] = [
+  // Divisas
+  { id: 'dolarbcv100', nombre: 'Dólar BCV x100', descripcion: 'DÓLAR BCV x 100', cantidad: 100, costoUni: (t) => t?.bcv ?? 876.79, categoria: 'divisas', color: 'bg-emerald-500 hover:bg-emerald-600', icon: DollarSign },
+  { id: 'dolarbcv50', nombre: 'Dólar BCV x50', descripcion: 'DÓLAR BCV x 50', cantidad: 50, costoUni: (t) => t?.bcv ?? 876.79, categoria: 'divisas', color: 'bg-emerald-500 hover:bg-emerald-600', icon: DollarSign },
+  { id: 'dolarmointor100', nombre: 'Dólar Monitor x100', descripcion: 'DÓLAR MONITOR x 100', cantidad: 100, costoUni: (t) => t?.monitor ?? 1015, categoria: 'divisas', color: 'bg-amber-500 hover:bg-amber-600', icon: DollarSign },
+  { id: 'dolarmointor50', nombre: 'Dólar Monitor x50', descripcion: 'DÓLAR MONITOR x 50', cantidad: 50, costoUni: (t) => t?.monitor ?? 1015, categoria: 'divisas', color: 'bg-amber-500 hover:bg-amber-600', icon: DollarSign },
+  // Zelle
+  { id: 'zelle50', nombre: 'Zelle $50', descripcion: 'ZELLE $50', cantidad: 1, costoUni: () => 50, categoria: 'pagos', color: 'bg-lime-500 hover:bg-lime-600', icon: CreditCard, pago: { campo: 'zelle', monto: 50 } },
+  { id: 'zelle100', nombre: 'Zelle $100', descripcion: 'ZELLE $100', cantidad: 1, costoUni: () => 100, categoria: 'pagos', color: 'bg-lime-500 hover:bg-lime-600', icon: CreditCard, pago: { campo: 'zelle', monto: 100 } },
+  { id: 'zelle200', nombre: 'Zelle $200', descripcion: 'ZELLE $200', cantidad: 1, costoUni: () => 200, categoria: 'pagos', color: 'bg-lime-500 hover:bg-lime-600', icon: CreditCard, pago: { campo: 'zelle', monto: 200 } },
+  // Binance
+  { id: 'binance100', nombre: 'Binance $100', descripcion: 'BINANCE $100', cantidad: 1, costoUni: () => 100, categoria: 'pagos', color: 'bg-orange-500 hover:bg-orange-600', icon: Bitcoin, pago: { campo: 'binance', monto: 100 } },
+  { id: 'binance200', nombre: 'Binance $200', descripcion: 'BINANCE $200', cantidad: 1, costoUni: () => 200, categoria: 'pagos', color: 'bg-orange-500 hover:bg-orange-600', icon: Bitcoin, pago: { campo: 'binance', monto: 200 } },
+  // Efectivo BS
+  { id: 'efecbs5000', nombre: 'Efectivo Bs 5000', descripcion: 'EFECTIVO BS 5000', cantidad: 1, costoUni: () => 5000, categoria: 'rapidos', color: 'bg-amber-600 hover:bg-amber-700', icon: Banknote, pago: { campo: 'pagoEfectivoBs', monto: 5000 } },
+  { id: 'efecbs10000', nombre: 'Efectivo Bs 10000', descripcion: 'EFECTIVO BS 10000', cantidad: 1, costoUni: () => 10000, categoria: 'rapidos', color: 'bg-amber-600 hover:bg-amber-700', icon: Banknote, pago: { campo: 'pagoEfectivoBs', monto: 10000 } },
+  // Bio Pago
+  { id: 'biopago5000', nombre: 'Bio Pago 5000', descripcion: 'BIO PAGO 5000', cantidad: 1, costoUni: () => 5000, categoria: 'rapidos', color: 'bg-rose-500 hover:bg-rose-600', icon: Smartphone, pago: { campo: 'bioPago', monto: 5000 } },
+]
+
+const CATEGORIAS = [
+  { id: 'divisas', label: '💱 Divisas', color: 'text-emerald-700' },
+  { id: 'pagos', label: '💳 Pagos Digitales', color: 'text-lime-700' },
+  { id: 'rapidos', label: '⚡ Montos Rápidos', color: 'text-amber-700' },
+]
+
 export function FormVenta({ user, onSaved }: Props) {
   const { toast } = useToast()
   const [tasa, setTasa] = useState<TasaInfo | null>(null)
   const [tasaSel, setTasaSel] = useState<'bcv' | 'monitor'>('monitor')
   const [saving, setSaving] = useState(false)
+  const [categoriaActiva, setCategoriaActiva] = useState<string>('divisas')
 
   // Campos del formulario
   const [cedula, setCedula] = useState('')
@@ -120,14 +162,44 @@ export function FormVenta({ user, onSaved }: Props) {
     }
   }
 
+  // Aplicar producto rápido: rellena campos automáticamente
+  function aplicarProducto(p: ProductoRapido) {
+    setDescripcion(p.descripcion)
+    setCantidad(p.cantidad)
+    setCostoUni(p.costoUni ? p.costoUni(tasa) : 0)
+    // Limpiar todos los campos de pago primero
+    setPagoEfectivoUsd(''); setPagoEfectivoBs(''); setDebitoBAmiga(''); setDebitoBVZla('')
+    setBioPago(''); setPm(''); setBinance(''); setZelle(''); setVpm('')
+    // Si el producto tiene un campo de pago, lo rellenamos
+    if (p.pago) {
+      const monto = p.pago.monto
+      switch (p.pago.campo) {
+        case 'pagoEfectivoBs': setPagoEfectivoBs(monto); break
+        case 'zelle': setZelle(monto); break
+        case 'binance': setBinance(monto); break
+        case 'bioPago': setBioPago(monto); break
+        case 'pm': setPm(monto); break
+        case 'pagoEfectivoUsd': setPagoEfectivoUsd(monto); break
+      }
+      toast({ title: `Producto agregado: ${p.nombre}`, description: `Pago: ${monto}` })
+    } else {
+      toast({ title: `Producto agregado: ${p.nombre}`, description: 'Revisa los campos antes de guardar' })
+    }
+  }
+
+  // Productos filtrados por categoría activa
+  const productosFiltrados = PRODUCTOS_RAPIDOS.filter(p => p.categoria === categoriaActiva)
+
   return (
     <Card className="p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-bold text-emerald-700">Registrar Nueva Venta</h2>
+      <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+        <h2 className="text-xl font-bold text-emerald-700 flex items-center gap-2">
+          <ShoppingCart className="w-5 h-5" /> Registrar Nueva Venta
+        </h2>
         {tasa ? (
           <div className="text-sm text-right">
             <span className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-md">
-              <span className="text-emerald-700 font-medium">Tasa seleccionada: {tasaSel === 'bcv' ? tasa.bcv : tasa.monitor} BS/$</span>
+              <span className="text-emerald-700 font-medium">Tasa: {tasaSel === 'bcv' ? tasa.bcv : tasa.monitor} BS/$</span>
             </span>
             <div className="text-xs text-muted-foreground mt-1">
               BCV: {tasa.bcv} · Monitor: {tasa.monitor}
@@ -138,6 +210,50 @@ export function FormVenta({ user, onSaved }: Props) {
             ⚠ Sin tasa configurada para hoy
           </div>
         )}
+      </div>
+
+      {/* CATÁLOGO estilo supermercado */}
+      <div className="mb-5 p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg border-2 border-emerald-200">
+        <div className="flex items-center gap-2 mb-3">
+          <Zap className="w-4 h-4 text-emerald-700" />
+          <h3 className="text-sm font-bold text-emerald-700">Productos Rápidos (1 click rellena todo)</h3>
+        </div>
+
+        {/* Tabs de categorías */}
+        <div className="flex gap-2 mb-3 flex-wrap">
+          {CATEGORIAS.map(c => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setCategoriaActiva(c.id)}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold border-2 transition-all ${
+                categoriaActiva === c.id
+                  ? 'bg-emerald-600 text-white border-transparent shadow-md'
+                  : 'bg-white border-emerald-200 text-emerald-700 hover:border-emerald-400'
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Grid de productos */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+          {productosFiltrados.map(p => {
+            const Icon = p.icon
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => aplicarProducto(p)}
+                className={`${p.color} text-white rounded-lg p-3 shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center gap-1 min-h-[80px]`}
+              >
+                <Icon className="w-6 h-6" />
+                <div className="text-xs font-bold text-center leading-tight">{p.nombre}</div>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       <form onSubmit={submit} className="space-y-5">

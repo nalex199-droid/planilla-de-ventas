@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Calendar, LogOut, BarChart3, Plus, List, Table2, Settings, Receipt, FileText } from 'lucide-react'
+import { Calendar, LogOut, BarChart3, Plus, List, Table2, Settings, Receipt, FileText, Database } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { FormVenta } from './form-venta'
 import { ListaVentas } from './lista-ventas'
@@ -13,6 +13,7 @@ import { DashboardResumen } from './dashboard-resumen'
 import { PanelAdmin } from './panel-admin'
 import { GastosForm } from './gastos-form'
 import { ListaGastos } from './lista-gastos'
+import { VerDatos } from './ver-datos'
 
 interface User {
   id: string
@@ -163,18 +164,21 @@ export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void
       {/* Contenido principal */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 mb-6 bg-emerald-50">
+          <TabsList className="grid w-full grid-cols-4 md:grid-cols-7 mb-6 bg-emerald-50">
             <TabsTrigger value="resumen" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
               <BarChart3 className="w-4 h-4 mr-2" /> Resumen
             </TabsTrigger>
             <TabsTrigger value="nueva" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
-              <Plus className="w-4 h-4 mr-2" /> Nueva Venta
+              <Plus className="w-4 h-4 mr-2" /> Vender
             </TabsTrigger>
             <TabsTrigger value="lista" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
               <List className="w-4 h-4 mr-2" /> Ventas
             </TabsTrigger>
             <TabsTrigger value="gastos" className="data-[state=active]:bg-rose-600 data-[state=active]:text-white">
               <Receipt className="w-4 h-4 mr-2" /> Gastos
+            </TabsTrigger>
+            <TabsTrigger value="datos" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+              <Database className="w-4 h-4 mr-2" /> Datos
             </TabsTrigger>
             <TabsTrigger value="excel" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
               <FileText className="w-4 h-4 mr-2" /> Reporte
@@ -221,6 +225,10 @@ export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void
                 />
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="datos">
+            <VerDatos fecha={fecha} />
           </TabsContent>
 
           <TabsContent value="excel">
