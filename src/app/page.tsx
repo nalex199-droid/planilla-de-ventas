@@ -1,38 +1,25 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { LoginForm } from '@/components/login-form'
-import { Dashboard } from '@/components/dashboard'
+import dynamic from 'next/dynamic'
 
-interface User {
-  id: string
-  username: string
-  name: string
-  role: string
-}
+// Cargar el contenido solo en el cliente (ssr: false).
+// Esto evita por completo los errores de hydration causados por
+// extensiones del navegador (Google Translate, Grammarly, LastPass, etc.)
+// que modifican el DOM durante la carga.
+const AppContent = dynamic(() => import('@/components/app-content').then(m => m.AppContent), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen flex items-center justify-center bg-emerald-50">
+      <div className="text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-600 rounded-full mb-3 shadow-lg animate-pulse">
+          <span className="text-3xl text-white font-bold">PV</span>
+        </div>
+        <div className="text-emerald-700 font-medium">Cargando Plantilla de Ventas...</div>
+      </div>
+    </div>
+  ),
+})
 
 export default function Home() {
-  const [user, setUser] = useState<User | null>(null)
-  const [checking, setChecking] = useState(true)
-
-  useEffect(() => {
-    fetch('/api/auth/session')
-      .then(r => r.json())
-      .then(d => { setUser(d.user ?? null) })
-      .finally(() => setChecking(false))
-  }, [])
-
-  if (checking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-emerald-50">
-        <div className="text-emerald-700 animate-pulse">Cargando...</div>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return <LoginForm onLogin={(u) => setUser(u as User)} />
-  }
-
-  return <Dashboard user={user} onLogout={() => setUser(null)} />
+  return <AppContent />
 }
