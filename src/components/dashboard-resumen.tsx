@@ -27,6 +27,11 @@ interface DashboardData {
     zelle: number
     vpm: number
   }
+  gastos?: Array<{ id: string; hora: string; concepto: string; modalidad: string; montoBs: number; montoUsd: number; asesor: string }>
+  totalGastosBs?: number
+  totalGastosUsd?: number
+  netoBs?: number
+  netoUsd?: number
 }
 
 function fmt(n: number) {
@@ -49,15 +54,15 @@ export function DashboardResumen({ data }: { data: DashboardData }) {
           <div className="text-3xl font-bold mt-1">{fmt(t.totalMontoBs)}</div>
           <div className="text-xs opacity-90 mt-1">Bolívares totales</div>
         </Card>
-        <Card className="p-5 bg-gradient-to-br from-teal-500 to-teal-700 text-white">
-          <div className="text-xs font-medium opacity-90 uppercase tracking-wide">Monto en $</div>
-          <div className="text-3xl font-bold mt-1">${fmt(t.totalMontoUsd)}</div>
-          <div className="text-xs opacity-90 mt-1">Divisas</div>
-        </Card>
         <Card className="p-5 bg-gradient-to-br from-rose-500 to-rose-700 text-white">
-          <div className="text-xs font-medium opacity-90 uppercase tracking-wide">Comisiones (2%)</div>
-          <div className="text-3xl font-bold mt-1">${fmt(t.totalComisiones)}</div>
-          <div className="text-xs opacity-90 mt-1">Sobre el neto</div>
+          <div className="text-xs font-medium opacity-90 uppercase tracking-wide">Total Gastos</div>
+          <div className="text-3xl font-bold mt-1">${fmt(data.totalGastosUsd ?? 0)}</div>
+          <div className="text-xs opacity-90 mt-1">{fmt(data.totalGastosBs ?? 0)} Bs</div>
+        </Card>
+        <Card className={`p-5 bg-gradient-to-br ${(data.netoUsd ?? 0) >= 0 ? 'from-teal-500 to-teal-700' : 'from-red-500 to-red-700'} text-white`}>
+          <div className="text-xs font-medium opacity-90 uppercase tracking-wide">NETO del Día</div>
+          <div className="text-3xl font-bold mt-1">${fmt(data.netoUsd ?? 0)}</div>
+          <div className="text-xs opacity-90 mt-1">{fmt(data.netoBs ?? 0)} Bs</div>
         </Card>
       </div>
 
@@ -173,6 +178,77 @@ export function DashboardResumen({ data }: { data: DashboardData }) {
           </div>
         </Card>
       </div>
+
+      {/* Gastos recientes */}
+      {data.gastos && data.gastos.length > 0 && (
+        <Card className="p-5 border-rose-200">
+          <h3 className="text-base font-semibold text-rose-700 mb-3">Gastos del Día ({data.gastos.length})</h3>
+          <div className="overflow-x-auto max-h-[300px] overflow-y-auto rounded-md border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-rose-50 border-b">
+                  <th className="text-left p-2 text-rose-700">Hora</th>
+                  <th className="text-left p-2 text-rose-700">Concepto</th>
+                  <th className="text-left p-2 text-rose-700">Modalidad</th>
+                  <th className="text-right p-2 text-rose-700">Monto BS</th>
+                  <th className="text-right p-2 text-rose-700">Monto $</th>
+                  <th className="text-left p-2 text-rose-700">Asesor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.gastos.map((g) => (
+                  <tr key={g.id} className="border-b last:border-0 hover:bg-rose-50">
+                    <td className="p-2 text-xs font-mono">{g.hora}</td>
+                    <td className="p-2">{g.concepto}</td>
+                    <td className="p-2 text-xs">
+                      <span className="inline-block px-2 py-0.5 rounded bg-rose-100 text-rose-700">{g.modalidad}</span>
+                    </td>
+                    <td className="p-2 text-right">{fmt(g.montoBs)}</td>
+                    <td className="p-2 text-right">${fmt(g.montoUsd)}</td>
+                    <td className="p-2 text-xs">{g.asesor}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-rose-100 font-bold">
+                  <td colSpan={3} className="p-2 text-right text-rose-700">TOTALES</td>
+                  <td className="p-2 text-right text-rose-700">{fmt(data.totalGastosBs ?? 0)} Bs</td>
+                  <td className="p-2 text-right text-rose-700">${fmt(data.totalGastosUsd ?? 0)}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* Resumen financiero */}
+      <Card className="p-5 bg-gradient-to-r from-emerald-50 to-rose-50 border-2 border-emerald-200">
+        <h3 className="text-base font-bold text-emerald-700 mb-3">Resumen Financiero del Día</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="bg-white border border-emerald-200 rounded-md p-3">
+            <div className="text-xs text-muted-foreground uppercase">Ventas</div>
+            <div className="text-xl font-bold text-emerald-700">${fmt(t.totalVentaDia)}</div>
+            <div className="text-xs text-muted-foreground">{fmt(t.totalMontoBs)} Bs</div>
+          </div>
+          <div className="bg-white border border-rose-200 rounded-md p-3">
+            <div className="text-xs text-muted-foreground uppercase">Gastos</div>
+            <div className="text-xl font-bold text-rose-700">-${fmt(data.totalGastosUsd ?? 0)}</div>
+            <div className="text-xs text-muted-foreground">-{fmt(data.totalGastosBs ?? 0)} Bs</div>
+          </div>
+          <div className="bg-white border border-amber-200 rounded-md p-3">
+            <div className="text-xs text-muted-foreground uppercase">Comisiones (2%)</div>
+            <div className="text-xl font-bold text-amber-700">${fmt(t.totalComisiones)}</div>
+          </div>
+          <div className={`border-2 rounded-md p-3 ${(data.netoUsd ?? 0) >= 0 ? 'bg-emerald-50 border-emerald-400' : 'bg-rose-50 border-rose-400'}`}>
+            <div className="text-xs text-muted-foreground uppercase">NETO (Ventas - Gastos)</div>
+            <div className={`text-xl font-bold ${(data.netoUsd ?? 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+              ${fmt(data.netoUsd ?? 0)}
+            </div>
+            <div className="text-xs text-muted-foreground">{fmt(data.netoBs ?? 0)} Bs</div>
+          </div>
+        </div>
+      </Card>
     </div>
   )
 }

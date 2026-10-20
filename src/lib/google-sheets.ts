@@ -20,22 +20,26 @@ let cachedClient: ReturnType<typeof google.sheets> | null = null
 interface DemoUser { username: string; password_hash: string; name: string; role: string }
 interface DemoVenta { row: number; values: (string | number)[] }
 interface DemoTasa { fecha: string; bcv: number; monitor: number }
+interface DemoGasto { row: number; values: (string | number)[] }
 
 // Usar globalThis para que las variables sobrevivan a hot reloads en desarrollo
 const g = globalThis as unknown as {
   __pvDemoUsers?: DemoUser[]
   __pvDemoVentas?: DemoVenta[]
   __pvDemoTasas?: DemoTasa[]
+  __pvDemoGastos?: DemoGasto[]
   __pvDemoSeeded?: boolean
 }
 g.__pvDemoUsers ??= []
 g.__pvDemoVentas ??= []
 g.__pvDemoTasas ??= []
+g.__pvDemoGastos ??= []
 g.__pvDemoSeeded ??= false
 
 const demoUsers = g.__pvDemoUsers
 const demoVentas = g.__pvDemoVentas
 const demoTasas = g.__pvDemoTasas
+const demoGastos = g.__pvDemoGastos
 
 export function isDemoMode(): boolean {
   return !process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ||
@@ -155,7 +159,13 @@ export async function findRowByValue(sheetName: string, column: number, value: s
 export async function deleteRow(sheetName: string, rowIndex: number): Promise<void> {
   if (isDemoMode()) {
     await ensureDemoSeed()
-    demoVentas.splice(demoVentas.findIndex(v => v.row === rowIndex), 1)
+    if (sheetName === 'Ventas') {
+      const idx = demoVentas.findIndex(v => v.row === rowIndex)
+      if (idx >= 0) demoVentas.splice(idx, 1)
+    } else if (sheetName === 'Gastos') {
+      const idx = demoGastos.findIndex(v => v.row === rowIndex)
+      if (idx >= 0) demoGastos.splice(idx, 1)
+    }
     return
   }
   const sheets = getSheetsClient()
@@ -199,6 +209,11 @@ function demoRead(sheetName: string, _range: string): string[][] {
     const rows = demoVentas.map(v => v.values.map(String))
     return [headers, ...rows]
   }
+  if (sheetName === 'Gastos') {
+    const headers = ['fecha', 'hora', 'userId', 'concepto', 'modalidad', 'montoBs', 'montoUsd', 'tasaUsdBs', 'asesor']
+    const rows = demoGastos.map(g => g.values.map(String))
+    return [headers, ...rows]
+  }
   if (sheetName === 'Tasas') {
     const headers = ['fecha', 'bcv', 'monitor']
     const rows = demoTasas.map(t => [t.fecha, String(t.bcv), String(t.monitor)])
@@ -214,6 +229,11 @@ function demoAppend(sheetName: string, values: (string | number)[]): Promise<num
   if (sheetName === 'Ventas') {
     const row = demoVentas.length === 0 ? 2 : Math.max(...demoVentas.map(v => v.row)) + 1
     demoVentas.push({ row, values })
+    return Promise.resolve(row)
+  }
+  if (sheetName === 'Gastos') {
+    const row = demoGastos.length === 0 ? 2 : Math.max(...demoGastos.map(v => v.row)) + 1
+    demoGastos.push({ row, values })
     return Promise.resolve(row)
   }
   if (sheetName === 'Tasas') {

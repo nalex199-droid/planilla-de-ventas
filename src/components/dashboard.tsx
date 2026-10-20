@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Calendar, LogOut, BarChart3, Plus, List, Table2, Settings } from 'lucide-react'
+import { Calendar, LogOut, BarChart3, Plus, List, Table2, Settings, Receipt, FileText } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { FormVenta } from './form-venta'
 import { ListaVentas } from './lista-ventas'
 import { DashboardResumen } from './dashboard-resumen'
 import { PanelAdmin } from './panel-admin'
+import { GastosForm } from './gastos-form'
+import { ListaGastos } from './lista-gastos'
 
 interface User {
   id: string
@@ -65,6 +67,19 @@ interface DashboardData {
     zelle: number
     vpm: number
   }>
+  gastos?: Array<{
+    id: string
+    hora: string
+    concepto: string
+    modalidad: string
+    montoBs: number
+    montoUsd: number
+    asesor: string
+  }>
+  totalGastosBs?: number
+  totalGastosUsd?: number
+  netoBs?: number
+  netoUsd?: number
 }
 
 export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void }) {
@@ -148,7 +163,7 @@ export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void
       {/* Contenido principal */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-6 bg-emerald-50">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 mb-6 bg-emerald-50">
             <TabsTrigger value="resumen" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
               <BarChart3 className="w-4 h-4 mr-2" /> Resumen
             </TabsTrigger>
@@ -156,10 +171,13 @@ export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void
               <Plus className="w-4 h-4 mr-2" /> Nueva Venta
             </TabsTrigger>
             <TabsTrigger value="lista" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
-              <List className="w-4 h-4 mr-2" /> Ventas del Día
+              <List className="w-4 h-4 mr-2" /> Ventas
+            </TabsTrigger>
+            <TabsTrigger value="gastos" className="data-[state=active]:bg-rose-600 data-[state=active]:text-white">
+              <Receipt className="w-4 h-4 mr-2" /> Gastos
             </TabsTrigger>
             <TabsTrigger value="excel" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
-              <Table2 className="w-4 h-4 mr-2" /> Google Sheet
+              <FileText className="w-4 h-4 mr-2" /> Reporte
             </TabsTrigger>
             <TabsTrigger value="admin" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
               <Settings className="w-4 h-4 mr-2" /> Tasas
@@ -190,6 +208,21 @@ export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void
             )}
           </TabsContent>
 
+          <TabsContent value="gastos">
+            <div className="space-y-4">
+              <GastosForm onSaved={() => load()} />
+              {loading || !data ? (
+                <div className="text-center py-10 text-muted-foreground">Cargando gastos...</div>
+              ) : (
+                <ListaGastos
+                  gastos={data.gastos ?? []}
+                  onDelete={() => load()}
+                  canDelete={user.role === 'admin'}
+                />
+              )}
+            </div>
+          </TabsContent>
+
           <TabsContent value="excel">
             <PanelAdmin fecha={fecha} user={user} onSavedTasa={load} />
           </TabsContent>
@@ -203,7 +236,7 @@ export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void
       {/* Footer */}
       <footer className="bg-white border-t border-emerald-200 py-3 mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center text-xs text-muted-foreground">
-          Plantilla de Ventas · Conectado a <b>PLANTILLA DE VENTAS COPIA LIMPIA.xlsm</b> · Hojas VENTAS, REPORTE, TOTALES, CxC
+          Plantilla de Ventas · Ventas + Gastos + Reportes Excel/PDF · Conectado a Google Sheets
         </div>
       </footer>
     </div>

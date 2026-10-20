@@ -19,9 +19,10 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const fechaParam = searchParams.get('fecha') ?? new Date().toISOString().slice(0, 10)
 
-  // Cargar ventas y tasas en paralelo
-  const [ventasRows, tasasRows] = await Promise.all([
+  // Cargar ventas, gastos y tasas en paralelo
+  const [ventasRows, gastosRows, tasasRows] = await Promise.all([
     readRange('Ventas', 'A:Z'),
+    readRange('Gastos', 'A:I'),
     readRange('Tasas', 'A:C'),
   ])
 
@@ -37,6 +38,22 @@ export async function GET(req: Request) {
   }
 
   if (ventasRows.length <= 1) {
+    // Verificar si hay gastos aunque no haya ventas
+    const gastos = gastosRows.length > 1
+      ? gastosRows.slice(1)
+          .filter(r => r[0] && r[0] === fechaParam)
+          .map((r, i) => ({
+            id: `grow_${i + 2}`,
+            hora: r[1] ?? '',
+            concepto: r[3] ?? '',
+            modalidad: r[4] ?? '',
+            montoBs: n(r[5]),
+            montoUsd: n(r[6]),
+            asesor: r[8] ?? '',
+          }))
+      : []
+    const totalGastosBs = gastos.reduce((s, g) => s + g.montoBs, 0)
+    const totalGastosUsd = gastos.reduce((s, g) => s + g.montoUsd, 0)
     return NextResponse.json({
       fecha: fechaParam,
       user: { name: user.name, role: user.role },
@@ -45,6 +62,11 @@ export async function GET(req: Request) {
       porAsesor: [],
       porModalidad: { pagoEfectivoUsd: 0, pagoEfectivoBs: 0, debitoBAmiga: 0, debitoBVZla: 0, bioPago: 0, pm: 0, binance: 0, zelle: 0, vpm: 0 },
       ventas: [],
+      gastos,
+      totalGastosBs: Number(totalGastosBs.toFixed(2)),
+      totalGastosUsd: Number(totalGastosUsd.toFixed(2)),
+      netoBs: Number((0 - totalGastosBs).toFixed(2)),
+      netoUsd: Number((0 - totalGastosUsd).toFixed(2)),
     })
   }
 
@@ -85,6 +107,34 @@ export async function GET(req: Request) {
   const totalMontoBs  = ventas.reduce((s, v) => s + v.montoBs, 0)
   const totalMontoUsd = ventas.reduce((s, v) => s + v.montoUsd, 0)
   const totalComisiones = ventas.reduce((s, v) => s + v.neto * 0.02, 0)
+
+  // Procesar gastos del día
+  const gastosArray: Array<{
+    id: string
+    hora: string
+    concepto: string
+    modalidad: string
+    montoBs: number
+    montoUsd: number
+    asesor: string
+  }> = []
+  if (gastosRows.length > 1) {
+    for (let i = 1; i < gastosRows.length; i++) {
+      const r = gastosRows[i]
+      if (!r[0] || r[0] !== fechaParam) continue
+      gastosArray.push({
+        id: `grow_${i + 1}`,
+        hora: String(r[1] ?? ''),
+        concepto: String(r[3] ?? ''),
+        modalidad: String(r[4] ?? ''),
+        montoBs: n(r[5]),
+        montoUsd: n(r[6]),
+        asesor: String(r[8] ?? ''),
+      })
+    }
+  }
+  const totalGastosBs = gastosArray.reduce((s, g) => s + g.montoBs, 0)
+  const totalGastosUsd = gastosArray.reduce((s, g) => s + g.montoUsd, 0)
 
   const porAsesorMap = new Map<string, { count: number; totalVenta: number; comision: number; montoBs: number; montoUsd: number }>()
   for (const v of ventas) {
@@ -128,5 +178,10 @@ export async function GET(req: Request) {
       vpm:             Number(ventas.reduce((s, v) => s + v.vpm, 0).toFixed(2)),
     },
     ventas,
+    gastos: gastosArray,
+    totalGastosBs: Number(totalGastosBs.toFixed(2)),
+    totalGastosUsd: Number(totalGastosUsd.toFixed(2)),
+    netoBs: Number((totalMontoBs - totalGastosBs).toFixed(2)),
+    netoUsd: Number((totalVentaDia - totalGastosUsd).toFixed(2)),
   })
 }

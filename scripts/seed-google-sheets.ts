@@ -48,7 +48,7 @@ async function main() {
   console.log(`Hojas existentes: ${existingSheets.join(', ') || '(ninguna)'}`)
 
   // Crear hojas faltantes
-  const requiredSheets = ['Usuarios', 'Ventas', 'Tasas', 'Configuracion']
+  const requiredSheets = ['Usuarios', 'Ventas', 'Gastos', 'Tasas', 'Configuracion']
   const toCreate = requiredSheets.filter(s => !existingSheets.includes(s))
   if (toCreate.length > 0) {
     await sheets.spreadsheets.batchUpdate({
@@ -71,6 +71,7 @@ async function main() {
                'cantidad', 'costoUni', 'neto', 'pagoEfectivoUsd', 'pagoEfectivoBs', 'debitoBAmiga',
                'debitoBVZla', 'bioPago', 'pm', 'binance', 'zelle', 'vpm',
                'montoBs', 'montoUsd', 'totalBs', 'tasaUsdBs', 'asesor', 'totalVenta'],
+    'Gastos': ['fecha', 'hora', 'userId', 'concepto', 'modalidad', 'montoBs', 'montoUsd', 'tasaUsdBs', 'asesor'],
     'Tasas': ['fecha', 'bcv', 'monitor'],
     'Configuracion': ['clave', 'valor'],
   }
