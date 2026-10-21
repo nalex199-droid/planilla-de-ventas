@@ -82,15 +82,17 @@ export async function POST(req: Request) {
     const userId = user.id
 
     // Orden de columnas debe coincidir con el header del Sheet (ver seed-google-sheets.ts)
+    // Redondear a 2 decimales para evitar problemas de formato con Google Sheets
+    const round2 = (x: number) => Math.round(x * 100) / 100
     const values = [
       fecha, hora, userId,
       body.cedula ?? '', body.nombre ?? '', body.celular ?? '',
       body.codigo ?? '', body.descripcion ?? '',
-      cantidad, costoUni, neto,
+      cantidad, costoUni, round2(neto),
       pagoEfectivoUsd, pagoEfectivoBs, debitoBAmiga, debitoBVZla,
       bioPago, pm, binance, zelle, vpm,
-      montoBs, montoUsd, totalBs, tasaUsdBs,
-      body.asesor ?? user.name, totalVenta,
+      round2(montoBs), round2(montoUsd), round2(totalBs), tasaUsdBs,
+      body.asesor ?? user.name, round2(totalVenta),
     ]
 
     const rowNum = await appendRow('Ventas', values)

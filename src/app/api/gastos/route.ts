@@ -71,6 +71,11 @@ export async function POST(req: Request) {
       montoBsFinal = montoUsd * tasaUsdBs
     }
 
+    // Redondear a 2 decimales para evitar problemas de formato con Google Sheets
+    const round2 = (x: number) => Math.round(x * 100) / 100
+    montoBsFinal = round2(montoBsFinal)
+    montoUsdFinal = round2(montoUsdFinal)
+
     const values = [
       fecha, hora, user.id,
       concepto, modalidad,

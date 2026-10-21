@@ -6,7 +6,20 @@ import ExcelJS from 'exceljs'
 
 function n(v: string | number | undefined): number {
   if (v === undefined || v === '') return 0
-  const x = Number(v)
+  if (typeof v === 'number') return v
+  // Limpiar formato español (1.234,56) e inglés (1,234.56)
+  let s = String(v).trim()
+  if (s.includes(',') && s.includes('.')) {
+    s = s.replace(/\./g, '').replace(',', '.')
+  } else if (s.includes(',') && !s.includes('.')) {
+    s = s.replace(',', '.')
+  } else if (s.includes('.') && !s.includes(',')) {
+    const parts = s.split('.')
+    if (parts.length > 1 && parts.slice(1).every(p => p.length === 3)) {
+      s = parts.join('')
+    }
+  }
+  const x = Number(s)
   return isNaN(x) ? 0 : x
 }
 

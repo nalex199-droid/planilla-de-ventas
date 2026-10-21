@@ -5,7 +5,25 @@ import { verifySessionToken, SESSION_COOKIE_NAME } from '@/lib/auth'
 
 function n(v: string | number | undefined): number {
   if (v === undefined || v === '') return 0
-  const x = Number(v)
+  if (typeof v === 'number') return v
+  // Limpiar formato español (1.234,56) e inglés (1,234.56)
+  let s = String(v).trim()
+  // Si tiene tanto , como . → asumir formato español (punto=miles, coma=decimal)
+  if (s.includes(',') && s.includes('.')) {
+    s = s.replace(/\./g, '').replace(',', '.')
+  } else if (s.includes(',') && !s.includes('.')) {
+    // Solo coma → asumir decimal español
+    s = s.replace(',', '.')
+  } else if (s.includes('.') && !s.includes(',')) {
+    // Solo punto → verificar si son separadores de miles (3 dígitos entre puntos)
+    const parts = s.split('.')
+    if (parts.length > 1 && parts.slice(1).every(p => p.length === 3)) {
+      // Formato como "1.234.567" → es miles en español
+      s = parts.join('')
+    }
+    // Si no, dejar como decimal inglés
+  }
+  const x = Number(s)
   return isNaN(x) ? 0 : x
 }
 
