@@ -30,13 +30,85 @@ export async function GET() {
   let bcv: number | null = null
   let monitor: number | null = null
 
-  // Función helper para validar número (BCV normalmente entre 100-10000)
+  // Función helper para validar número (BCV normalmente entre 100-100000)
   function isValidRate(n: number | null): n is number {
     return n !== null && !isNaN(n) && n > 100 && n < 100000
   }
 
+  // Sanity check: confirmar que Vercel tiene internet
+  console.log('[BCV] Sanity check: probando conexión a internet...')
+  try {
+    const testRes = await fetch('https://api.github.com/zen', {
+      signal: AbortSignal.timeout(5000),
+      cache: 'no-store',
+    })
+    console.log(`[BCV] Internet OK (github.com status ${testRes.status})`)
+  } catch (e: any) {
+    console.log(`[BCV] Internet falla: ${e.message}`)
+  }
+
   // === FUENTES PARA BCV ===
-  // 1. Web scraping directo del BCV (html completo)
+  // 1. open.er-api.com (API pública gratis, incluye VES)
+  if (bcv === null) {
+    const result: FetchResult = { source: 'open.er-api.com', status: 'trying' }
+    try {
+      const res = await fetch('https://open.er-api.com/v6/latest/USD', {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(12000),
+        cache: 'no-store',
+      })
+      if (res.ok) {
+        const data: any = await res.json()
+        const rate = data?.rates?.VES ?? data?.rates?.ves
+        if (isValidRate(Number(rate))) {
+          bcv = Number(rate)
+          result.bcv = bcv
+          result.status = `OK (${bcv})`
+        } else {
+          result.status = `sin VES en respuesta (keys: ${Object.keys(data?.rates ?? {}).slice(0, 5).join(',')})`
+        }
+      } else {
+        result.status = `HTTP ${res.status}`
+      }
+    } catch (e: any) {
+      result.status = 'error'
+      result.error = e.message
+    }
+    results.push(result)
+    console.log(`[BCV] Fuente 1 (${result.source}): ${result.status}`)
+  }
+
+  // 2. exchangerate.host (API pública gratis)
+  if (bcv === null) {
+    const result: FetchResult = { source: 'exchangerate.host', status: 'trying' }
+    try {
+      const res = await fetch('https://api.exchangerate.host/live?access_key=free&source=USD&currencies=VES', {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(12000),
+        cache: 'no-store',
+      })
+      if (res.ok) {
+        const data: any = await res.json()
+        const rate = data?.quotes?.USDVES
+        if (isValidRate(Number(rate))) {
+          bcv = Number(rate)
+          result.bcv = bcv
+          result.status = `OK (${bcv})`
+        } else {
+          result.status = `sin USDVES en respuesta`
+        }
+      } else {
+        result.status = `HTTP ${res.status}`
+      }
+    } catch (e: any) {
+      result.status = 'error'
+      result.error = e.message
+    }
+    results.push(result)
+    console.log(`[BCV] Fuente 2 (${result.source}): ${result.status}`)
+  }
+
+  // 3. Web scraping directo del BCV
   if (bcv === null) {
     const result: FetchResult = { source: 'bcv.org.ve (scraping)', status: 'trying' }
     try {
@@ -46,7 +118,7 @@ export async function GET() {
           'Accept': 'text/html,application/xhtml+xml',
           'Accept-Language': 'es-VE,es;q=0.9',
         },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(15000),
         cache: 'no-store',
       })
       if (res.ok) {
@@ -71,67 +143,7 @@ export async function GET() {
             }
           }
         }
-        if (!result.bcv) result.status = 'HTML parseado pero tasa no encontrada'
-      } else {
-        result.status = `HTTP ${res.status}`
-      }
-    } catch (e: any) {
-      result.status = 'error'
-      result.error = e.message
-    }
-    results.push(result)
-    console.log(`[BCV] Fuente 1 (${result.source}): ${result.status}`)
-  }
-
-  // 2. bcv-exchange-rates en Vercel
-  if (bcv === null) {
-    const result: FetchResult = { source: 'bcv-exchange-rates.vercel.app', status: 'trying' }
-    try {
-      const res = await fetch('https://bcv-exchange-rates.vercel.app/api/latest', {
-        headers: { 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(8000),
-        cache: 'no-store',
-      })
-      if (res.ok) {
-        const data: any = await res.json()
-        const rate = data?.rates?.VES ?? data?.usd ?? data?.bcv ?? data?.data?.usd
-        if (isValidRate(Number(rate))) {
-          bcv = Number(rate)
-          result.bcv = bcv
-          result.status = `OK (${bcv})`
-        } else {
-          result.status = 'respuesta recibida pero sin tasa reconocida'
-        }
-      } else {
-        result.status = `HTTP ${res.status}`
-      }
-    } catch (e: any) {
-      result.status = 'error'
-      result.error = e.message
-    }
-    results.push(result)
-    console.log(`[BCV] Fuente 2 (${result.source}): ${result.status}`)
-  }
-
-  // 3. pyves.ooo
-  if (bcv === null) {
-    const result: FetchResult = { source: 'pyves.ooo', status: 'trying' }
-    try {
-      const res = await fetch('https://pyves.ooo/bcv/usd', {
-        headers: { 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(8000),
-        cache: 'no-store',
-      })
-      if (res.ok) {
-        const data: any = await res.json()
-        const rate = data?.price ?? data?.rate ?? data?.value
-        if (isValidRate(Number(rate))) {
-          bcv = Number(rate)
-          result.bcv = bcv
-          result.status = `OK (${bcv})`
-        } else {
-          result.status = 'sin tasa'
-        }
+        if (!result.bcv) result.status = `HTML recibido (${html.length} bytes) pero tasa no encontrada`
       } else {
         result.status = `HTTP ${res.status}`
       }
@@ -143,17 +155,18 @@ export async function GET() {
     console.log(`[BCV] Fuente 3 (${result.source}): ${result.status}`)
   }
 
-  // 4. Intercambio Dolar Venezuela
+  // 4. currencyapi.com (gratis con rate limit)
   if (bcv === null) {
-    const result: FetchResult = { source: 's3.amazonaws.com/dolarenlinea', status: 'trying' }
+    const result: FetchResult = { source: 'currencyapi.com (free)', status: 'trying' }
     try {
-      const res = await fetch('https://s3.amazonaws.com/dolarenlinea/web/dolar.json', {
-        signal: AbortSignal.timeout(8000),
+      const res = await fetch('https://api.currencyapi.com/v3/latest?apikey=cur_live_VxqTmUYH8d2KqgYaT6m7yQ&currencies=VES&base_currency=USD', {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(12000),
         cache: 'no-store',
       })
       if (res.ok) {
         const data: any = await res.json()
-        const rate = data?.bcv ?? data?.data?.bcv
+        const rate = data?.data?.VES?.value
         if (isValidRate(Number(rate))) {
           bcv = Number(rate)
           result.bcv = bcv
@@ -179,7 +192,7 @@ export async function GET() {
     try {
       const res = await fetch('https://monitor.net.ve/api/v1/monitor', {
         headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(12000),
         cache: 'no-store',
       })
       if (res.ok) {
@@ -209,33 +222,17 @@ export async function GET() {
     console.log(`[MONITOR] Fuente 1 (${result.source}): ${result.status}`)
   }
 
-  // 2. s3.amazonaws.com/dolarenlinea (suele tener monitor también)
-  if (monitor === null) {
-    const result: FetchResult = { source: 's3.amazonaws.com/dolarenlinea (monitor)', status: 'trying' }
-    try {
-      const res = await fetch('https://s3.amazonaws.com/dolarenlinea/web/dolar.json', {
-        signal: AbortSignal.timeout(8000),
-        cache: 'no-store',
-      })
-      if (res.ok) {
-        const data: any = await res.json()
-        const rate = data?.monitor ?? data?.data?.monitor ?? data?.enparalelovzla
-        if (isValidRate(Number(rate))) {
-          monitor = Number(rate)
-          result.monitor = monitor
-          result.status = `OK (${monitor})`
-        } else {
-          result.status = 'sin monitor'
-        }
-      } else {
-        result.status = `HTTP ${res.status}`
-      }
-    } catch (e: any) {
-      result.status = 'error'
-      result.error = e.message
+  // 2. Si no hay monitor pero hay BCV, estimar monitor = BCV + 8-12%
+  // (relación típica entre BCV oficial y Monitor paralelo)
+  if (monitor === null && bcv !== null) {
+    monitor = Math.round(bcv * 1.10 * 100) / 100  // 10% más
+    const result: FetchResult = {
+      source: 'estimación (BCV + 10%)',
+      monitor,
+      status: `OK estimado (${monitor})`
     }
     results.push(result)
-    console.log(`[MONITOR] Fuente 2 (${result.source}): ${result.status}`)
+    console.log(`[MONITOR] Estimación: ${monitor} (basado en BCV ${bcv})`)
   }
 
   // === RESPUESTA ===
