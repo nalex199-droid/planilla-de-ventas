@@ -32,6 +32,11 @@ interface DashboardData {
   totalGastosUsd?: number
   netoBs?: number
   netoUsd?: number
+  abonosProveedores?: number
+  totalAbonosProveedoresBs?: number
+  totalAbonosProveedoresUsd?: number
+  totalOtrosGastosBs?: number
+  totalOtrosGastosUsd?: number
 }
 
 function fmt(n: number) {
@@ -63,6 +68,25 @@ export function DashboardResumen({ data }: { data: DashboardData }) {
           <div className="text-xs font-medium opacity-90 uppercase tracking-wide">NETO del Día</div>
           <div className="text-3xl font-bold mt-1">${fmt(data.netoUsd ?? 0)}</div>
           <div className="text-xs opacity-90 mt-1">{fmt(data.netoBs ?? 0)} Bs</div>
+        </Card>
+      </div>
+
+      {/* Cards específicas para Abonos a Proveedores y Otros Gastos */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="p-4 border-2 border-emerald-300 bg-emerald-50">
+          <div className="text-xs font-bold text-emerald-700 uppercase tracking-wide">🤝 Abonos a Proveedores ({data.abonosProveedores ?? 0})</div>
+          <div className="text-2xl font-bold text-emerald-700 mt-1">${fmt(data.totalAbonosProveedoresUsd ?? 0)}</div>
+          <div className="text-xs text-emerald-600 mt-1">{fmt(data.totalAbonosProveedoresBs ?? 0)} Bs</div>
+        </Card>
+        <Card className="p-4 border-2 border-amber-300 bg-amber-50">
+          <div className="text-xs font-bold text-amber-700 uppercase tracking-wide">💼 Otros Gastos</div>
+          <div className="text-2xl font-bold text-amber-700 mt-1">${fmt(data.totalOtrosGastosUsd ?? 0)}</div>
+          <div className="text-xs text-amber-600 mt-1">{fmt(data.totalOtrosGastosBs ?? 0)} Bs</div>
+        </Card>
+        <Card className="p-4 border-2 border-rose-300 bg-rose-50">
+          <div className="text-xs font-bold text-rose-700 uppercase tracking-wide">💸 Comisiones (2%)</div>
+          <div className="text-2xl font-bold text-rose-700 mt-1">${fmt(t.totalComisiones)}</div>
+          <div className="text-xs text-rose-600 mt-1">Sobre el neto de ventas</div>
         </Card>
       </div>
 

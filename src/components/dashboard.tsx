@@ -81,6 +81,11 @@ interface DashboardData {
   totalGastosUsd?: number
   netoBs?: number
   netoUsd?: number
+  abonosProveedores?: number
+  totalAbonosProveedoresBs?: number
+  totalAbonosProveedoresUsd?: number
+  totalOtrosGastosBs?: number
+  totalOtrosGastosUsd?: number
 }
 
 export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void }) {

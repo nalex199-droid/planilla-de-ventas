@@ -120,6 +120,18 @@ export async function GET(req: Request) {
   const totalGastosBs = gastosData.reduce((s, g) => s + g.montoBs, 0)
   const totalGastosUsd = gastosData.reduce((s, g) => s + g.montoUsd, 0)
 
+  // Calcular Abonos a Proveedores
+  const abonosProveedores = gastosData.filter(g =>
+    (g.concepto ?? '').toUpperCase().startsWith('[ABONO_PROVEEDOR]') ||
+    (g.concepto ?? '').toUpperCase().includes('ABONO A PROVEEDOR') ||
+    (g.concepto ?? '').toUpperCase().includes('ABONO_PROVEEDOR')
+  )
+  const totalAbonosBs = abonosProveedores.reduce((s, g) => s + g.montoBs, 0)
+  const totalAbonosUsd = abonosProveedores.reduce((s, g) => s + g.montoUsd, 0)
+  const otrosGastos = gastosData.filter(g => !abonosProveedores.includes(g))
+  const totalOtrosBs = otrosGastos.reduce((s, g) => s + g.montoBs, 0)
+  const totalOtrosUsd = otrosGastos.reduce((s, g) => s + g.montoUsd, 0)
+
   // Por asesor
   const porAsesor = new Map<string, { count: number; totalVenta: number; comision: number; montoBs: number; montoUsd: number }>()
   for (const v of ventasData) {
@@ -156,6 +168,30 @@ export async function GET(req: Request) {
   wsResumen.getCell('B10').value = totalGastosBs
   wsResumen.getCell('B10').numFmt = '#,##0.00'
 
+  // Desglose: Abonos a Proveedores
+  wsResumen.getCell('A14').value = '🤝 ABONOS A PROVEEDORES'
+  wsResumen.getCell('A14').style = { font: { bold: true, color: { argb: 'FF047857' } } }
+  wsResumen.getCell('A15').value = `Cantidad de abonos`
+  wsResumen.getCell('B15').value = abonosProveedores.length
+  wsResumen.getCell('A16').value = `Total Abonos $`
+  wsResumen.getCell('B16').value = totalAbonosUsd
+  wsResumen.getCell('B16').numFmt = '"$"#,##0.00'
+  wsResumen.getCell('A17').value = `Total Abonos Bs`
+  wsResumen.getCell('B17').value = totalAbonosBs
+  wsResumen.getCell('B17').numFmt = '#,##0.00'
+
+  // Otros gastos
+  wsResumen.getCell('A19').value = '💼 OTROS GASTOS'
+  wsResumen.getCell('A19').style = { font: { bold: true, color: { argb: 'FF92400E' } } }
+  wsResumen.getCell('A20').value = `Cantidad`
+  wsResumen.getCell('B20').value = otrosGastos.length
+  wsResumen.getCell('A21').value = `Total $`
+  wsResumen.getCell('B21').value = totalOtrosUsd
+  wsResumen.getCell('B21').numFmt = '"$"#,##0.00'
+  wsResumen.getCell('A22').value = `Total Bs`
+  wsResumen.getCell('B22').value = totalOtrosBs
+  wsResumen.getCell('B22').numFmt = '#,##0.00'
+
   wsResumen.getCell('A11').value = 'Comisiones (2%)'
   wsResumen.getCell('B11').value = totalComisiones
   wsResumen.getCell('B11').numFmt = '"$"#,##0.00'
@@ -172,12 +208,12 @@ export async function GET(req: Request) {
   wsResumen.getCell('B13').numFmt = '#,##0.00'
 
   // Tabla por asesor
-  wsResumen.getCell('A15').value = 'POR ASESOR'
-  wsResumen.getCell('A15').style = subtitleStyle
+  wsResumen.getCell('A24').value = 'POR ASESOR'
+  wsResumen.getCell('A24').style = subtitleStyle
 
-  wsResumen.getRow(16).values = ['Asesor', '# Ventas', 'Monto BS', 'Monto $', 'Total Venta', 'Comisión']
-  wsResumen.getRow(16).eachCell(cell => { cell.style = headerStyle })
-  let r = 17
+  wsResumen.getRow(25).values = ['Asesor', '# Ventas', 'Monto BS', 'Monto $', 'Total Venta', 'Comisión']
+  wsResumen.getRow(25).eachCell(cell => { cell.style = headerStyle })
+  let r = 26
   for (const [asesor, d] of porAsesor.entries()) {
     wsResumen.getRow(r).values = [asesor, d.count, d.montoBs, d.montoUsd, d.totalVenta, d.comision]
     wsResumen.getRow(r).getCell(3).numFmt = '#,##0.00'

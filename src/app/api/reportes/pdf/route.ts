@@ -107,6 +107,18 @@ export async function GET(req: Request) {
   const totalGastosBs = gastosData.reduce((s, g) => s + g.montoBs, 0)
   const totalGastosUsd = gastosData.reduce((s, g) => s + g.montoUsd, 0)
 
+  // Calcular Abonos a Proveedores
+  const abonosProveedores = gastosData.filter(g =>
+    (g.concepto ?? '').toUpperCase().startsWith('[ABONO_PROVEEDOR]') ||
+    (g.concepto ?? '').toUpperCase().includes('ABONO A PROVEEDOR') ||
+    (g.concepto ?? '').toUpperCase().includes('ABONO_PROVEEDOR')
+  )
+  const totalAbonosBs = abonosProveedores.reduce((s, g) => s + g.montoBs, 0)
+  const totalAbonosUsd = abonosProveedores.reduce((s, g) => s + g.montoUsd, 0)
+  const otrosGastos = gastosData.filter(g => !abonosProveedores.includes(g))
+  const totalOtrosBs = otrosGastos.reduce((s, g) => s + g.montoBs, 0)
+  const totalOtrosUsd = otrosGastos.reduce((s, g) => s + g.montoUsd, 0)
+
   // Por asesor
   const porAsesorMap = new Map<string, { count: number; totalVenta: number; comision: number; montoBs: number; montoUsd: number }>()
   for (const v of ventasData) {
@@ -273,13 +285,16 @@ export async function GET(req: Request) {
             margin: [0, 0, 0, 20],
           },
 
-      // Resumen final
+      // Resumen final con desglose de Abonos a Proveedores
       {
         table: {
           widths: ['*', 'auto'],
           body: [
             [{ text: 'TOTAL VENTAS ($)', bold: true, fillColor: '#D1FAE5' }, { text: `$${fmt(totalVentaDia)}`, alignment: 'right', bold: true, fillColor: '#D1FAE5' }],
+            [{ text: '   └ Abonos a Proveedores', color: '#065F46', fontSize: 9 }, { text: `$${fmt(totalAbonosUsd)} (${abonosProveedores.length})`, alignment: 'right', color: '#065F46', fontSize: 9 }],
+            [{ text: '   └ Otros Gastos', color: '#92400E', fontSize: 9 }, { text: `$${fmt(totalOtrosUsd)} (${otrosGastos.length})`, alignment: 'right', color: '#92400E', fontSize: 9 }],
             [{ text: 'TOTAL GASTOS ($)', bold: true, fillColor: '#FECDD3' }, { text: `$${fmt(totalGastosUsd)}`, alignment: 'right', bold: true, fillColor: '#FECDD3' }],
+            [{ text: 'COMISIONES (2%)', bold: true, fillColor: '#FDE68A' }, { text: `$${fmt(totalComisiones)}`, alignment: 'right', bold: true, fillColor: '#FDE68A' }],
             [{ text: 'NETO del DÍA ($)', bold: true, fontSize: 14, fillColor: netoUsd >= 0 ? '#A7F3D0' : '#FECACA' }, { text: `$${fmt(netoUsd)}`, alignment: 'right', bold: true, fontSize: 14, fillColor: netoUsd >= 0 ? '#A7F3D0' : '#FECACA' }],
           ],
         },

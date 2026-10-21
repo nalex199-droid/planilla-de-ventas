@@ -12,13 +12,15 @@ import { ShoppingCart, Utensils, Truck, Zap, Wallet, Plus } from 'lucide-react'
 interface TasaInfo { bcv: number; monitor: number }
 
 // Botones rápidos de conceptos comunes (estilo supermercado)
+// La categoría "Abono a Proveedor" es la más importante (estaba en el Excel original)
 const CONCEPTOS_RAPIDOS = [
-  { id: 'compra_mercancia', label: 'Compra Mercancía', icon: ShoppingCart, color: 'bg-blue-500' },
-  { id: 'comida', label: 'Comida/Desayuno', icon: Utensils, color: 'bg-orange-500' },
-  { id: 'envio', label: 'Envío/Transporte', icon: Truck, color: 'bg-purple-500' },
-  { id: 'servicio', label: 'Servicio/Luz/Agua', icon: Zap, color: 'bg-yellow-500' },
-  { id: 'prooveedor', label: 'Pago Proveedor', icon: Wallet, color: 'bg-emerald-500' },
-  { id: 'otro', label: 'Otro', icon: Plus, color: 'bg-gray-500' },
+  { id: 'abono_proveedor', label: 'Abono a Proveedor', icon: Wallet, color: 'bg-emerald-600', categoria: 'abono_proveedor' },
+  { id: 'compra_mercancia', label: 'Compra Mercancía', icon: ShoppingCart, color: 'bg-blue-500', categoria: 'compra_mercancia' },
+  { id: 'comida', label: 'Comida/Desayuno', icon: Utensils, color: 'bg-orange-500', categoria: 'comida' },
+  { id: 'envio', label: 'Envío/Transporte', icon: Truck, color: 'bg-purple-500', categoria: 'envio' },
+  { id: 'servicio', label: 'Servicio/Luz/Agua', icon: Zap, color: 'bg-yellow-500', categoria: 'servicio' },
+  { id: 'saldos', label: 'Saldos/Ajustes', icon: Wallet, color: 'bg-gray-500', categoria: 'saldos' },
+  { id: 'otro', label: 'Otro', icon: Plus, color: 'bg-gray-400', categoria: 'otro' },
 ]
 
 const MODALIDADES = [
@@ -43,6 +45,7 @@ export function GastosForm({ onSaved }: { onSaved: () => void }) {
   const [modalidad, setModalidad] = useState('efectivo_bs')
   const [montoInput, setMontoInput] = useState<number | ''>('')
   const [montoEsUsd, setMontoEsUsd] = useState(false) // false = BS, true = USD
+  const [categoria, setCategoria] = useState('otro')
 
   useEffect(() => {
     fetch('/api/tasas')
@@ -53,8 +56,10 @@ export function GastosForm({ onSaved }: { onSaved: () => void }) {
 
   const tasaUsdBs = tasa ? (tasaSel === 'bcv' ? tasa.bcv : tasa.monitor) : 0
 
-  function quickConcepto(c: { id: string; label: string }) {
+  function quickConcepto(c: { id: string; label: string; categoria: string }) {
     setConcepto(c.label)
+    setCategoria(c.categoria)
+    toast({ title: `Categoría: ${c.label}`, description: 'Completa los detalles abajo' })
   }
 
   async function submit(e: React.FormEvent) {
@@ -70,7 +75,10 @@ export function GastosForm({ onSaved }: { onSaved: () => void }) {
     setSaving(true)
     try {
       const body = {
-        concepto,
+        // Incluir categoría como prefijo en el concepto para poder filtrar
+        concepto: `[${categoria.toUpperCase()}] ${concepto}`,
+        conceptoOriginal: concepto,
+        categoria,
         modalidad,
         tasaUsdBs,
         // Si el monto es USD, mandar montoUsd. Si es BS, mandar montoBs.

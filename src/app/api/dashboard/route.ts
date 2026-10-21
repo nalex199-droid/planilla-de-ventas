@@ -136,6 +136,21 @@ export async function GET(req: Request) {
   const totalGastosBs = gastosArray.reduce((s, g) => s + g.montoBs, 0)
   const totalGastosUsd = gastosArray.reduce((s, g) => s + g.montoUsd, 0)
 
+  // Calcular Abonos a Proveedores (categoría especial)
+  // Los abonos a proveedores se identifican porque el concepto empieza con [ABONO_PROVEEDOR]
+  const abonosProveedores = gastosArray.filter(g =>
+    g.concepto?.toUpperCase().startsWith('[ABONO_PROVEEDOR]') ||
+    g.concepto?.toUpperCase().includes('ABONO A PROVEEDOR') ||
+    g.concepto?.toUpperCase().includes('ABONO_PROVEEDOR')
+  )
+  const totalAbonosProveedoresBs = abonosProveedores.reduce((s, g) => s + g.montoBs, 0)
+  const totalAbonosProveedoresUsd = abonosProveedores.reduce((s, g) => s + g.montoUsd, 0)
+
+  // Otros gastos (excluyendo abonos a proveedores)
+  const otrosGastos = gastosArray.filter(g => !abonosProveedores.includes(g))
+  const totalOtrosGastosBs = otrosGastos.reduce((s, g) => s + g.montoBs, 0)
+  const totalOtrosGastosUsd = otrosGastos.reduce((s, g) => s + g.montoUsd, 0)
+
   const porAsesorMap = new Map<string, { count: number; totalVenta: number; comision: number; montoBs: number; montoUsd: number }>()
   for (const v of ventas) {
     const cur = porAsesorMap.get(v.asesor) ?? { count: 0, totalVenta: 0, comision: 0, montoBs: 0, montoUsd: 0 }
@@ -183,5 +198,10 @@ export async function GET(req: Request) {
     totalGastosUsd: Number(totalGastosUsd.toFixed(2)),
     netoBs: Number((totalMontoBs - totalGastosBs).toFixed(2)),
     netoUsd: Number((totalVentaDia - totalGastosUsd).toFixed(2)),
+    abonosProveedores: abonosProveedores.length,
+    totalAbonosProveedoresBs: Number(totalAbonosProveedoresBs.toFixed(2)),
+    totalAbonosProveedoresUsd: Number(totalAbonosProveedoresUsd.toFixed(2)),
+    totalOtrosGastosBs: Number(totalOtrosGastosBs.toFixed(2)),
+    totalOtrosGastosUsd: Number(totalOtrosGastosUsd.toFixed(2)),
   })
 }
