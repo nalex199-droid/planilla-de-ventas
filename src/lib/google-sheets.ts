@@ -122,7 +122,9 @@ export async function appendRow(sheetName: string, values: (string | number)[]):
     range: `${sheetName}!A:A`,
     valueInputOption: 'USER_ENTERED',
     insertDataOption: 'INSERT_ROWS',
-    requestBody: { values: [values.map(v => String(v))] },
+    // Pasar valores TAL CUAL (sin convertir a string) para que los números
+    // sean reconocidos como números nativos y no como texto formateado
+    requestBody: { values: [values.map(v => typeof v === 'number' ? v : String(v))] },
   })
   const updates = res.data.updates?.updatedRange ?? ''
   const match = updates.match(/!A(\d+):/)
