@@ -120,7 +120,9 @@ export async function appendRow(sheetName: string, values: (string | number)[]):
   const res = await sheets!.spreadsheets.values.append({
     spreadsheetId: getSheetId(),
     range: `${sheetName}!A:A`,
-    valueInputOption: 'USER_ENTERED',
+    // RAW: Sheets guarda los valores LITERALMENTE sin interpretarlos.
+    // Evita que "2026-10-21" se convierta en fecha serial 46316.
+    valueInputOption: 'RAW',
     insertDataOption: 'INSERT_ROWS',
     // Pasar valores TAL CUAL (sin convertir a string) para que los números
     // sean reconocidos como números nativos y no como texto formateado
@@ -140,8 +142,8 @@ export async function updateCell(sheetName: string, cell: string, value: string 
   await sheets!.spreadsheets.values.update({
     spreadsheetId: getSheetId(),
     range: `${sheetName}!${cell}`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values: [[String(value)]] },
+    valueInputOption: 'RAW',
+    requestBody: { values: [[typeof value === 'number' ? value : String(value)]] },
   })
 }
 
