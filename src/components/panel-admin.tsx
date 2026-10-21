@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
-import { ExternalLink, Table2, Settings, FileSpreadsheet, FileText, Download } from 'lucide-react'
+import { ExternalLink, Table2, Settings, FileSpreadsheet, FileText, Download, RefreshCw, Zap } from 'lucide-react'
 
 interface Props {
   fecha: string
@@ -24,6 +24,7 @@ export function PanelAdmin({ fecha, user, onSavedTasa }: Props) {
   const [loadingLink, setLoadingLink] = useState(true)
   const [exportingExcel, setExportingExcel] = useState(false)
   const [exportingPdf, setExportingPdf] = useState(false)
+  const [autoUpdating, setAutoUpdating] = useState(false)
 
   useEffect(() => {
     fetch('/api/sheets/link')
@@ -53,6 +54,68 @@ export function PanelAdmin({ fecha, user, onSavedTasa }: Props) {
       onSavedTasa()
     } else {
       toast({ title: 'Error', description: data.error, variant: 'destructive' })
+    }
+  }
+
+  async function autoActualizarTasa() {
+    setAutoUpdating(true)
+    try {
+      const res = await fetch(`/api/tasas/bcv?fecha=${fecha}`, { method: 'POST' })
+      const data = await res.json()
+      if (res.ok) {
+        toast({
+          title: '✅ Tasa actualizada automáticamente',
+          description: data.message ?? `BCV: ${data.tasa.bcv} · Monitor: ${data.tasa.monitor}`,
+        })
+        // Actualizar los inputs con las nuevas tasas
+        if (data.tasa.bcv) setBcv(String(data.tasa.bcv))
+        if (data.tasa.monitor) setMonitor(String(data.tasa.monitor))
+        onSavedTasa()
+      } else {
+        toast({
+          title: '⚠ No se pudo actualizar automáticamente',
+          description: data.error ?? 'Error desconocido',
+          variant: 'destructive',
+        })
+      }
+    } catch (err) {
+      toast({
+        title: 'Error de red',
+        description: String(err),
+        variant: 'destructive',
+      })
+    } finally {
+      setAutoUpdating(false)
+    }
+  }
+
+  async function soloConsultarBcv() {
+    setAutoUpdating(true)
+    try {
+      const res = await fetch('/api/tasas/bcv')
+      const data = await res.json()
+      if (res.ok) {
+        if (data.bcv) setBcv(String(data.bcv))
+        if (data.monitor) setMonitor(String(data.monitor))
+        toast({
+          title: 'Tasa obtenida del BCV',
+          description: `BCV: ${data.bcv ?? 'no disponible'} · Monitor: ${data.monitor ?? 'no disponible'}`,
+        })
+      } else {
+        toast({
+          title: 'No se pudo obtener',
+          description: data.error ?? 'Error desconocido',
+          variant: 'destructive',
+        })
+      }
+    } catch (err) {
+      toast({
+        title: 'Error de red',
+        description: String(err),
+        variant: 'destructive',
+      })
+    } finally {
+      setAutoUpdating(false)
     }
   }
 
@@ -100,7 +163,7 @@ export function PanelAdmin({ fecha, user, onSavedTasa }: Props) {
               <br/>• Resumen general (ventas, gastos, comisiones, neto)
               <br/>• Detalle por asesor
               <br/>• Listado completo de ventas del día
-              <br/>• Listado completo de gastos del día
+              <br/>• Listado completo de gastos del día (incluye Abonos a Proveedores)
             </p>
           </div>
           <div className="flex flex-col gap-2 min-w-[180px]">
@@ -159,6 +222,32 @@ export function PanelAdmin({ fecha, user, onSavedTasa }: Props) {
             Solo el administrador puede actualizar las tasas. Estas tasas alimentan las fórmulas del Google Sheet
             y los cálculos automáticos del reporte.
           </p>
+
+          {/* Botón de auto-actualización */}
+          <div className="mb-4 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-md">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <div className="text-sm font-bold text-emerald-700 flex items-center gap-1.5">
+                  <Zap className="w-4 h-4" /> Auto-actualización
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Obtiene la tasa automáticamente desde el sitio web del BCV (https://www.bcv.org.ve/) y de Monitor (monitor.net.ve).
+                  Guarda la tasa para hoy en el Google Sheet.
+                </div>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <Button onClick={soloConsultarBcv} disabled={autoUpdating} variant="outline" size="sm">
+                  <RefreshCw className={`w-4 h-4 mr-2 ${autoUpdating ? 'animate-spin' : ''}`} />
+                  {autoUpdating ? 'Consultando...' : 'Solo consultar BCV'}
+                </Button>
+                <Button onClick={autoActualizarTasa} disabled={autoUpdating} className="bg-emerald-600 hover:bg-emerald-700" size="sm">
+                  <Zap className="w-4 h-4 mr-2" />
+                  {autoUpdating ? 'Actualizando...' : 'Actualizar y guardar automáticamente'}
+                </Button>
+              </div>
+            </div>
+          </div>
+
           <form onSubmit={guardarTasa} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
             <div className="space-y-1.5">
               <Label htmlFor="bcv">Tasa BCV (oficial)</Label>
@@ -170,7 +259,7 @@ export function PanelAdmin({ fecha, user, onSavedTasa }: Props) {
             </div>
             <div className="md:col-span-2">
               <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700">
-                Guardar Tasa para {fecha}
+                Guardar Manual para {fecha}
               </Button>
             </div>
           </form>
