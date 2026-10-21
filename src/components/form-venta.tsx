@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
 import { DollarSign, ShoppingCart, Bitcoin, Wallet, Smartphone, CreditCard, Banknote, Plus, Zap } from 'lucide-react'
+import { ProductoSearcher } from './producto-searcher'
 
 interface TasaInfo { bcv: number; monitor: number }
 interface Props {
@@ -278,9 +279,26 @@ export function FormVenta({ user, onSaved }: Props) {
 
         <Separator />
 
-        {/* Datos del producto */}
+        {/* Datos del producto con buscador de catálogo */}
         <div>
-          <h3 className="text-sm font-semibold text-emerald-700 mb-2">Producto / Servicio</h3>
+          <h3 className="text-sm font-semibold text-emerald-700 mb-2 flex items-center gap-2">
+            🔍 Buscar producto del catálogo (9,207 productos)
+          </h3>
+          <ProductoSearcher
+            onSelect={(p) => {
+              setCodigo(p.codigo)
+              setDescripcion(p.descripcion)
+              if (p.costo) setCostoUni(p.costo)
+              toast({ title: 'Producto cargado', description: `${p.codigo}: ${p.descripcion}` })
+            }}
+          />
+        </div>
+
+        <Separator />
+
+        {/* Datos del producto (campos manuales) */}
+        <div>
+          <h3 className="text-sm font-semibold text-emerald-700 mb-2">Producto / Servicio (también puedes escribir manual)</h3>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="codigo">Código</Label>
