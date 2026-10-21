@@ -168,44 +168,59 @@ export async function POST(req: Request) {
   const user = await verifySessionToken(token)
   if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
-  const { searchParams } = new URL(req.url)
-  const fechaParam = searchParams.get('fecha') ?? new Date().toISOString().slice(0, 10)
+  try {
+    const { searchParams } = new URL(req.url)
+    const fechaParam = searchParams.get('fecha') ?? new Date().toISOString().slice(0, 10)
 
-  // Llamar al GET internamente para obtener las tasas
-  const getRes = await GET()
-  if (!getRes.ok) {
-    const err = await getRes.json()
-    return NextResponse.json({
-      error: err.error ?? 'No se pudo obtener la tasa',
-      sources_tried: err.sources_tried,
-    }, { status: 503 })
-  }
-  const data: any = await getRes.json()
+    // Llamar al GET internamente para obtener las tasas
+    const getRes = await GET()
+    if (!getRes.ok) {
+      const err = await getRes.json()
+      return NextResponse.json({
+        error: err.error ?? 'No se pudo obtener la tasa',
+        sources_tried: err.sources_tried,
+      }, { status: 503 })
+    }
+    const data: any = await getRes.json()
 
-  if (!data.bcv && !data.monitor) {
+    if (!data.bcv && !data.monitor) {
+      return NextResponse.json({
+        error: 'No se pudo obtener ninguna tasa',
+        sources_tried: data.sources_tried,
+      }, { status: 503 })
+    }
+
+    // Buscar si ya existe la tasa para hoy
+    const existingRow = await findRowByValue('Tasas', 0, fechaParam)
+
+    const bcv = Number(data.bcv ?? 0)
+    const monitor = Number(data.monitor ?? 0)
+
+    if (existingRow) {
+      if (bcv) await updateCell('Tasas', `B${existingRow}`, bcv)
+      if (monitor) await updateCell('Tasas', `C${existingRow}`, monitor)
+    } else {
+      await appendRow('Tasas', [fechaParam, bcv || 0, monitor || 0])
+    }
+
     return NextResponse.json({
-      error: 'No se pudo obtener ninguna tasa',
+      ok: true,
+      tasa: { fecha: fechaParam, bcv, monitor },
+      message: `Tasa actualizada: BCV=${bcv || '(sin cambio)'} · Monitor=${monitor || '(sin cambio)'}`,
       sources_tried: data.sources_tried,
-    }, { status: 503 })
+    })
+  } catch (e: any) {
+    // Detectar error de permisos de Google Sheets
+    const msg = e.message ?? ''
+    if (msg.includes('does not have permission') || msg.includes('PERMISSION_DENIED')) {
+      return NextResponse.json({
+        error: 'La Service Account no tiene permiso de ESCRITURA en el Google Sheet. Abre el Sheet → botón Compartir → busca el email de la Service Account → cambia el permiso de "Viewer" a "Editor" → Guardar.',
+        details: msg,
+      }, { status: 403 })
+    }
+    return NextResponse.json({
+      error: 'Error inesperado al guardar la tasa',
+      details: msg,
+    }, { status: 500 })
   }
-
-  // Buscar si ya existe la tasa para hoy
-  const existingRow = await findRowByValue('Tasas', 0, fechaParam)
-
-  const bcv = Number(data.bcv ?? 0)
-  const monitor = Number(data.monitor ?? 0)
-
-  if (existingRow) {
-    if (bcv) await updateCell('Tasas', `B${existingRow}`, bcv)
-    if (monitor) await updateCell('Tasas', `C${existingRow}`, monitor)
-  } else {
-    await appendRow('Tasas', [fechaParam, bcv || 0, monitor || 0])
-  }
-
-  return NextResponse.json({
-    ok: true,
-    tasa: { fecha: fechaParam, bcv, monitor },
-    message: `Tasa actualizada: BCV=${bcv || '(sin cambio)'} · Monitor=${monitor || '(sin cambio)'}`,
-    sources_tried: data.sources_tried,
-  })
 }
