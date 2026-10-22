@@ -3,8 +3,8 @@ import { readRange, appendRow, deleteRow, findRowByValue } from '@/lib/google-sh
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 
-// Tiempo de expiración del token (30 minutos por seguridad)
-const TOKEN_EXPIRES_MS = 30 * 60 * 1000
+// Tiempo de expiración del token (10 minutos por seguridad)
+const TOKEN_EXPIRES_MS = 10 * 60 * 1000
 
 /**
  * POST /api/auth/forgot-password
@@ -121,7 +121,7 @@ export async function POST(req: Request) {
               <p style="word-break: break-all; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">${resetUrl}</p>
               <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 12px; border-radius: 6px; margin: 16px 0;">
                 <p style="margin: 0; color: #92400e; font-weight: bold;">
-                  ⏰ Por seguridad, este enlace expira en 30 minutos
+                  ⏰ Por seguridad, este enlace expira en 10 minutos
                 </p>
                 <p style="margin: 4px 0 0 0; color: #92400e; font-size: 12px;">
                   Vence el: <b>${expiresStr}</b> (hora de Venezuela)

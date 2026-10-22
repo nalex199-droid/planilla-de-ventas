@@ -190,7 +190,7 @@ export function LoginForm({ onLogin }: { onLogin: (user: { id: string; username:
                   </p>
                   {forgotResult.expiresStr && (
                     <div className="p-2 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-800">
-                      ⏰ <b>Por seguridad, el link expira en 30 minutos</b>
+                      ⏰ <b>Por seguridad, el link expira en 10 minutos</b>
                       <br/>
                       Vence el: <b>{forgotResult.expiresStr}</b> (hora de Venezuela)
                     </div>
