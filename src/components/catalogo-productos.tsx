@@ -34,9 +34,13 @@ export function CatalogoProductos() {
     cargarProductos('')
   }, [])
 
-  function cargarProductos(q: string) {
+  function cargarProductos(q: string, forceRefresh: boolean = false) {
     setLoading(true)
-    const url = q.trim() ? `/api/productos?q=${encodeURIComponent(q.trim())}&limit=50` : '/api/productos?limit=50'
+    const params = new URLSearchParams()
+    if (q.trim()) params.set('q', q.trim())
+    params.set('limit', '50')
+    if (forceRefresh) params.set('refresh', '1')
+    const url = `/api/productos?${params.toString()}`
     fetch(url)
       .then(r => r.json())
       .then(d => {
@@ -82,7 +86,7 @@ export function CatalogoProductos() {
               Abrir en Sheets
             </a>
           </Button>
-          <Button variant="outline" size="sm" onClick={() => cargarProductos(query)} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={() => cargarProductos(query, true)} disabled={loading}>
             <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
             Refrescar
           </Button>

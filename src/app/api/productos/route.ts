@@ -78,9 +78,14 @@ async function getProductos(): Promise<Producto[]> {
 }
 
 /**
- * GET /api/productos?q=...&limit=20
+ * GET /api/productos?q=...&limit=20&refresh=1
  * Busca productos por código o descripción.
  * Lee desde el Sheet "Productos" (con caché en memoria de 10 min).
+ *
+ * Parámetros:
+ * - q: texto a buscar (vacío = devolver primeros N)
+ * - limit: máximo de resultados (default 20, max 100)
+ * - refresh=1: fuerza recarga del Sheet (ignora caché)
  */
 export async function GET(req: Request) {
   const token = (await cookies()).get(SESSION_COOKIE_NAME)?.value
@@ -91,6 +96,14 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const query = (searchParams.get('q') ?? '').trim().toLowerCase()
   const limit = Math.min(parseInt(searchParams.get('limit') ?? '20', 10), 100)
+  const refresh = searchParams.get('refresh') === '1'
+
+  // Si refresh=1, invalidar caché
+  if (refresh) {
+    cachedProductos = null
+    cachedAt = 0
+    console.log('[productos] Caché invalidada manualmente')
+  }
 
   const productos = await getProductos()
 
