@@ -184,15 +184,14 @@ export function LoginForm({ onLogin }: { onLogin: (user: { id: string; username:
               )}
               {forgotResult && (
                 <div className="space-y-3">
-                  <p className={forgotResult.ok ? 'text-emerald-700' : 'text-red-700'}>
+                  <p className={forgotResult.ok ? 'text-emerald-700 font-medium' : 'text-red-700 font-medium'}>
                     {forgotResult.message}
                   </p>
                   {forgotResult.resetUrl && (
                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
-                      <p className="text-xs font-semibold text-amber-800 mb-1">
-                        ⚠ Modo demo: el email no se envió porque no está configurado RESEND_API_KEY.
+                      <p className="text-xs text-amber-700 mb-2">
+                        Si no recibiste el correo, abre este link:
                       </p>
-                      <p className="text-xs text-amber-700 mb-2">Link de recuperación:</p>
                       <div className="flex gap-2">
                         <Input
                           readOnly

@@ -67,14 +67,32 @@ export async function POST(req: Request) {
     const host = req.headers.get('origin') ?? 'https://planilla-de-ventas.vercel.app'
     const resetUrl = `${host}/?reset=${token}`
 
-    // Intentar enviar email si RESEND_API_KEY está configurado
-    const resendKey = process.env.RESEND_API_KEY
+    // Obtener el API key de Resend:
+    // 1. Primero de variable de entorno (RESEND_API_KEY)
+    // 2. Si no, leer del Google Sheet "Configuracion"
+    let resendKey = process.env.RESEND_API_KEY
+    let resendFromEmail = process.env.RESEND_FROM_EMAIL
+
+    if (!resendKey) {
+      // Leer desde el Sheet
+      try {
+        const configRows = await readRange('Configuracion', 'A2:B100')
+        for (const r of configRows) {
+          if (r[0] === 'RESEND_API_KEY') resendKey = String(r[1] ?? '')
+          if (r[0] === 'RESEND_FROM_EMAIL') resendFromEmail = String(r[1] ?? '')
+        }
+        console.log('[forgot-password] RESEND_API_KEY leída del Sheet:', resendKey ? '✓ presente' : '✗ no encontrada')
+      } catch (e) {
+        console.error('[forgot-password] Error leyendo configuración:', e)
+      }
+    }
+
     if (resendKey) {
       try {
         const { Resend } = await import('resend')
         const resend = new Resend(resendKey)
 
-        const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'Plantilla de Ventas <onboarding@resend.dev>'
+        const fromEmail = resendFromEmail ?? 'Plantilla de Ventas <onboarding@resend.dev>'
 
         const { error } = await resend.emails.send({
           from: fromEmail,
@@ -103,30 +121,30 @@ export async function POST(req: Request) {
         })
 
         if (error) {
-          console.error('Error sending email:', error)
-          // En modo demo, devolver el link directamente
+          console.error('[forgot-password] Error enviando email:', error)
           return NextResponse.json({
             ok: true,
-            message: `Se generó un enlace pero el email no se pudo enviar (${error.message}). Contacta al admin.`,
-            resetUrl, // devolver en modo demo
+            message: `Se generó un enlace pero el email no se pudo enviar. Contacta al admin.`,
+            errorDetail: error.message,
+            resetUrl, // devolver como fallback
           })
         }
 
         return NextResponse.json({
           ok: true,
-          message: `Email enviado a ${email}. Revisa tu correo (incluyendo spam) para restablecer tu contraseña.`,
+          message: `✅ Email enviado a ${email}. Revisa tu correo (incluyendo spam) para restablecer tu contraseña.`,
         })
       } catch (e: any) {
-        console.error('Resend failed:', e)
+        console.error('[forgot-password] Error con Resend:', e)
         return NextResponse.json({
           ok: true,
-          message: 'No se pudo enviar el email automáticamente.',
-          resetUrl, // devolver en modo demo
+          message: `No se pudo enviar el email automáticamente. Error: ${e.message}`,
+          resetUrl, // devolver como fallback
         })
       }
     }
 
-    // Modo demo: devolver el link directamente (no hay RESEND_API_KEY configurado)
+    // Sin API key → modo demo (link directo)
     return NextResponse.json({
       ok: true,
       message: 'Modo demo: el email no se envió porque no está configurado RESEND_API_KEY.',
