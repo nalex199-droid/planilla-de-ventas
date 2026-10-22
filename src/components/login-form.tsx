@@ -188,11 +188,11 @@ export function LoginForm({ onLogin }: { onLogin: (user: { id: string; username:
                     {forgotResult.message}
                   </p>
                   {forgotResult.resetUrl && (
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
-                      <p className="text-xs text-amber-700 mb-2">
-                        Si no recibiste el correo, abre este link:
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-md">
+                      <p className="text-xs font-semibold text-emerald-800 mb-2">
+                        🔗 Link de recuperación (ábrelo si no recibiste el correo):
                       </p>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 mb-2">
                         <Input
                           readOnly
                           value={forgotResult.resetUrl}
@@ -213,7 +213,7 @@ export function LoginForm({ onLogin }: { onLogin: (user: { id: string; username:
                       <Button
                         type="button"
                         size="sm"
-                        className="mt-2 w-full bg-emerald-600 hover:bg-emerald-700"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700"
                         onClick={() => {
                           if (forgotResult.resetUrl) window.location.href = forgotResult.resetUrl
                         }}

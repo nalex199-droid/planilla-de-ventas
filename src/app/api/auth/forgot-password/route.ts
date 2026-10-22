@@ -133,6 +133,7 @@ export async function POST(req: Request) {
         return NextResponse.json({
           ok: true,
           message: `✅ Email enviado a ${email}. Revisa tu correo (incluyendo spam) para restablecer tu contraseña.`,
+          resetUrl, // también devolver el link como respaldo
         })
       } catch (e: any) {
         console.error('[forgot-password] Error con Resend:', e)
