@@ -10,8 +10,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Usuario y contraseña son requeridos' }, { status: 400 })
     }
     // Leer la hoja Usuarios (todas las filas)
-    const rows = await readRange('Usuarios', 'A:D')
+    const rows = await readRange('Usuarios', 'A:E')
     // Saltar encabezado (fila 1)
+    // Headers: username, password_hash, name, role, email
     const user = rows.slice(1).find(r => r[0]?.toLowerCase() === String(username).toLowerCase().trim())
     if (!user) {
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 })

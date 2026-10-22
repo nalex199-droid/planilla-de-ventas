@@ -48,7 +48,7 @@ async function main() {
   console.log(`Hojas existentes: ${existingSheets.join(', ') || '(ninguna)'}`)
 
   // Crear hojas faltantes
-  const requiredSheets = ['Usuarios', 'Ventas', 'Gastos', 'Tasas', 'Configuracion']
+  const requiredSheets = ['Usuarios', 'Ventas', 'Gastos', 'Tasas', 'Tokens', 'Configuracion']
   const toCreate = requiredSheets.filter(s => !existingSheets.includes(s))
   if (toCreate.length > 0) {
     await sheets.spreadsheets.batchUpdate({
@@ -66,13 +66,14 @@ async function main() {
 
   // Escribir encabezados en cada hoja
   const headers = {
-    'Usuarios': ['username', 'password_hash', 'name', 'role'],
+    'Usuarios': ['username', 'password_hash', 'name', 'role', 'email'],
     'Ventas': ['fecha', 'hora', 'userId', 'cedula', 'nombre', 'celular', 'codigo', 'descripcion',
                'cantidad', 'costoUni', 'neto', 'pagoEfectivoUsd', 'pagoEfectivoBs', 'debitoBAmiga',
                'debitoBVZla', 'bioPago', 'pm', 'binance', 'zelle', 'vpm',
                'montoBs', 'montoUsd', 'totalBs', 'tasaUsdBs', 'asesor', 'totalVenta'],
     'Gastos': ['fecha', 'hora', 'userId', 'concepto', 'modalidad', 'montoBs', 'montoUsd', 'tasaUsdBs', 'asesor'],
     'Tasas': ['fecha', 'bcv', 'monitor'],
+    'Tokens': ['token', 'username', 'createdAt', 'expiresAt'],
     'Configuracion': ['clave', 'valor'],
   }
 
@@ -95,24 +96,24 @@ async function main() {
   }
 
   // Insertar usuarios por defecto (solo si la hoja está vacía)
-  const usersRes = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'Usuarios!A2:D100' })
+  const usersRes = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'Usuarios!A2:E100' })
   if ((usersRes.data.values ?? []).length === 0) {
     const users = [
-      { username: 'admin',    name: 'Administrador', role: 'admin',  password: 'admin123' },
-      { username: 'roxi',     name: 'ROXI',          role: 'asesor', password: 'roxi123' },
-      { username: 'milagros', name: 'MILAGROS',      role: 'asesor', password: 'mila123' },
-      { username: 'diego',    name: 'DIEGO',         role: 'asesor', password: 'diego123' },
+      { username: 'admin',    name: 'Administrador', role: 'admin',  password: 'admin123', email: 'admin@plantilla-ventas.local' },
+      { username: 'roxi',     name: 'ROXI',          role: 'asesor', password: 'roxi123',  email: 'roxi@plantilla-ventas.local' },
+      { username: 'milagros', name: 'MILAGROS',      role: 'asesor', password: 'mila123',  email: 'milagros@plantilla-ventas.local' },
+      { username: 'diego',    name: 'DIEGO',         role: 'asesor', password: 'diego123', email: 'diego@plantilla-ventas.local' },
     ]
     const rows = []
     for (const u of users) {
       const hash = await bcrypt.hash(u.password, 10)
-      rows.push([u.username, hash, u.name, u.role])
-      console.log(`  ✓ ${u.username} / ${u.password} (${u.role})`)
+      rows.push([u.username, hash, u.name, u.role, u.email])
+      console.log(`  ✓ ${u.username} / ${u.password} (${u.role}) - email: ${u.email}`)
     }
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
       range: 'Usuarios!A:A',
-      valueInputOption: 'USER_ENTERED',
+      valueInputOption: 'RAW',
       insertDataOption: 'INSERT_ROWS',
       requestBody: { values: rows },
     })

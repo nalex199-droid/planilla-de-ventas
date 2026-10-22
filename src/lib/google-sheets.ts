@@ -17,10 +17,11 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 let cachedClient: ReturnType<typeof google.sheets> | null = null
 
 // ====== Modo demo (en memoria, para desarrollo sin Google) ======
-interface DemoUser { username: string; password_hash: string; name: string; role: string }
+interface DemoUser { username: string; password_hash: string; name: string; role: string; email?: string }
 interface DemoVenta { row: number; values: (string | number)[] }
 interface DemoTasa { fecha: string; bcv: number; monitor: number }
 interface DemoGasto { row: number; values: (string | number)[] }
+interface DemoToken { token: string; username: string; createdAt: number; expiresAt: number }
 
 // Usar globalThis para que las variables sobrevivan a hot reloads en desarrollo
 const g = globalThis as unknown as {
@@ -28,18 +29,21 @@ const g = globalThis as unknown as {
   __pvDemoVentas?: DemoVenta[]
   __pvDemoTasas?: DemoTasa[]
   __pvDemoGastos?: DemoGasto[]
+  __pvDemoTokens?: DemoToken[]
   __pvDemoSeeded?: boolean
 }
 g.__pvDemoUsers ??= []
 g.__pvDemoVentas ??= []
 g.__pvDemoTasas ??= []
 g.__pvDemoGastos ??= []
+g.__pvDemoTokens ??= []
 g.__pvDemoSeeded ??= false
 
 const demoUsers = g.__pvDemoUsers
 const demoVentas = g.__pvDemoVentas
 const demoTasas = g.__pvDemoTasas
 const demoGastos = g.__pvDemoGastos
+const demoTokens = g.__pvDemoTokens
 
 export function isDemoMode(): boolean {
   return !process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ||
@@ -53,10 +57,10 @@ async function ensureDemoSeed() {
   if (demoUsers.length === 0) {
     const bcrypt = await import('bcryptjs')
     const users = [
-      { username: 'admin',    name: 'Administrador', role: 'admin',  password: 'admin123' },
-      { username: 'roxi',     name: 'ROXI',          role: 'asesor', password: 'roxi123' },
-      { username: 'milagros', name: 'MILAGROS',      role: 'asesor', password: 'mila123' },
-      { username: 'diego',    name: 'DIEGO',         role: 'asesor', password: 'diego123' },
+      { username: 'admin',    name: 'Administrador', role: 'admin',  password: 'admin123', email: 'admin@example.com' },
+      { username: 'roxi',     name: 'ROXI',          role: 'asesor', password: 'roxi123',  email: 'roxi@example.com' },
+      { username: 'milagros', name: 'MILAGROS',      role: 'asesor', password: 'mila123',  email: 'milagros@example.com' },
+      { username: 'diego',    name: 'DIEGO',         role: 'asesor', password: 'diego123', email: 'diego@example.com' },
     ]
     for (const u of users) {
       demoUsers.push({
@@ -64,6 +68,7 @@ async function ensureDemoSeed() {
         password_hash: await bcrypt.hash(u.password, 10),
         name: u.name,
         role: u.role,
+        email: u.email,
       })
     }
   }
@@ -201,8 +206,8 @@ async function getSheetIdNumeric(sheetName: string): Promise<number> {
 // ====== Implementación demo (en memoria) ======
 function demoRead(sheetName: string, _range: string): string[][] {
   if (sheetName === 'Usuarios') {
-    const headers = ['username', 'password_hash', 'name', 'role']
-    const rows = demoUsers.map(u => [u.username, u.password_hash, u.name, u.role])
+    const headers = ['username', 'password_hash', 'name', 'role', 'email']
+    const rows = demoUsers.map(u => [u.username, u.password_hash, u.name, u.role, u.email ?? ''])
     return [headers, ...rows]
   }
   if (sheetName === 'Ventas') {
@@ -216,6 +221,14 @@ function demoRead(sheetName: string, _range: string): string[][] {
   if (sheetName === 'Gastos') {
     const headers = ['fecha', 'hora', 'userId', 'concepto', 'modalidad', 'montoBs', 'montoUsd', 'tasaUsdBs', 'asesor']
     const rows = demoGastos.map(g => g.values.map(String))
+    return [headers, ...rows]
+  }
+  if (sheetName === 'Tokens') {
+    const headers = ['token', 'username', 'createdAt', 'expiresAt']
+    const now = Date.now()
+    const rows = demoTokens
+      .filter(t => t.expiresAt > now)  // solo tokens no expirados
+      .map(t => [t.token, t.username, String(t.createdAt), String(t.expiresAt)])
     return [headers, ...rows]
   }
   if (sheetName === 'Tasas') {
@@ -239,6 +252,14 @@ function demoAppend(sheetName: string, values: (string | number)[]): Promise<num
     const row = demoGastos.length === 0 ? 2 : Math.max(...demoGastos.map(v => v.row)) + 1
     demoGastos.push({ row, values })
     return Promise.resolve(row)
+  }
+  if (sheetName === 'Tokens') {
+    const token = String(values[0])
+    const username = String(values[1])
+    const createdAt = Number(values[2])
+    const expiresAt = Number(values[3])
+    demoTokens.push({ token, username, createdAt, expiresAt })
+    return Promise.resolve(0)
   }
   if (sheetName === 'Tasas') {
     const fecha = String(values[0])

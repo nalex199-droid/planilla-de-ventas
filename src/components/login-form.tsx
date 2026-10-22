@@ -7,12 +7,28 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog'
+import { Mail, KeyRound } from 'lucide-react'
 
 export function LoginForm({ onLogin }: { onLogin: (user: { id: string; username: string; name: string; role: string }) => void }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
+
+  // Estado del modal de recuperación
+  const [forgotOpen, setForgotOpen] = useState(false)
+  const [forgotUsername, setForgotUsername] = useState('')
+  const [forgotSending, setForgotSending] = useState(false)
+  const [forgotResult, setForgotResult] = useState<{ ok: boolean; message: string; resetUrl?: string } | null>(null)
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -38,6 +54,39 @@ export function LoginForm({ onLogin }: { onLogin: (user: { id: string; username:
       toast({ title: 'Error de red', description: String(err), variant: 'destructive' })
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function enviarRecuperacion() {
+    if (!forgotUsername.trim()) {
+      toast({ title: 'Ingresa tu usuario o email', variant: 'destructive' })
+      return
+    }
+    setForgotSending(true)
+    setForgotResult(null)
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usernameOrEmail: forgotUsername.trim().toLowerCase() }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setForgotResult({
+          ok: true,
+          message: data.message ?? 'Solicitud procesada',
+          resetUrl: data.resetUrl, // solo en modo demo
+        })
+      } else {
+        setForgotResult({
+          ok: false,
+          message: data.error ?? 'Error',
+        })
+      }
+    } catch (err) {
+      setForgotResult({ ok: false, message: String(err) })
+    } finally {
+      setForgotSending(false)
     }
   }
 
@@ -81,6 +130,17 @@ export function LoginForm({ onLogin }: { onLogin: (user: { id: string; username:
           </Button>
         </form>
 
+        {/* Link de recuperación */}
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={() => { setForgotOpen(true); setForgotResult(null); setForgotUsername('') }}
+            className="text-sm text-emerald-700 hover:text-emerald-900 hover:underline"
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
+        </div>
+
         <div className="mt-6 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
           <p className="text-xs font-semibold text-emerald-700 mb-2">Cuentas de prueba:</p>
           <ul className="text-xs text-emerald-600 space-y-1">
@@ -91,6 +151,104 @@ export function LoginForm({ onLogin }: { onLogin: (user: { id: string; username:
           </ul>
         </div>
       </Card>
+
+      {/* Modal de recuperación de contraseña */}
+      <AlertDialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-emerald-700" />
+              Recuperar contraseña
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {!forgotResult && (
+                <>
+                  Ingresa tu <b>usuario</b> o <b>email</b> registrado. Te enviaremos
+                  un enlace para restablecer tu contraseña.
+                  <br/>
+                  <br/>
+                  <Input
+                    placeholder="ej: admin o tu@email.com"
+                    value={forgotUsername}
+                    onChange={(e) => setForgotUsername(e.target.value)}
+                    disabled={forgotSending}
+                    className="mt-2"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        enviarRecuperacion()
+                      }
+                    }}
+                  />
+                </>
+              )}
+              {forgotResult && (
+                <div className="space-y-3">
+                  <p className={forgotResult.ok ? 'text-emerald-700' : 'text-red-700'}>
+                    {forgotResult.message}
+                  </p>
+                  {forgotResult.resetUrl && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                      <p className="text-xs font-semibold text-amber-800 mb-1">
+                        ⚠ Modo demo: el email no se envió porque no está configurado RESEND_API_KEY.
+                      </p>
+                      <p className="text-xs text-amber-700 mb-2">Link de recuperación:</p>
+                      <div className="flex gap-2">
+                        <Input
+                          readOnly
+                          value={forgotResult.resetUrl}
+                          className="font-mono text-xs"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(forgotResult.resetUrl ?? '')
+                            toast({ title: 'Link copiado' })
+                          }}
+                        >
+                          Copiar
+                        </Button>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="mt-2 w-full bg-emerald-600 hover:bg-emerald-700"
+                        onClick={() => {
+                          if (forgotResult.resetUrl) window.location.href = forgotResult.resetUrl
+                        }}
+                      >
+                        Abrir link ahora
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            {!forgotResult ? (
+              <>
+                <Button variant="outline" onClick={() => setForgotOpen(false)} disabled={forgotSending}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={enviarRecuperacion}
+                  disabled={forgotSending}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {forgotSending ? 'Enviando...' : 'Enviar enlace'}
+                </Button>
+              </>
+            ) : (
+              <AlertDialogAction onClick={() => setForgotOpen(false)} className="bg-emerald-600 hover:bg-emerald-700">
+                Cerrar
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
