@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { Search, Package, Loader2, Database } from 'lucide-react'
+import { Search, Package, Loader2, Database, ExternalLink, RefreshCw } from 'lucide-react'
 
 interface Producto {
   codigo: string
@@ -16,6 +16,7 @@ interface Producto {
   um?: string
   ubicacion?: string
   costo?: number
+  categoria?: string
 }
 
 export function CatalogoProductos() {
@@ -24,6 +25,8 @@ export function CatalogoProductos() {
   const [loading, setLoading] = useState(false)
   const [total, setTotal] = useState(0)
   const [hasSearched, setHasSearched] = useState(false)
+  const [source, setSource] = useState('')
+  const [cached, setCached] = useState(false)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   // Cargar primeros productos al montar
@@ -39,6 +42,8 @@ export function CatalogoProductos() {
       .then(d => {
         setProductos(d.productos ?? [])
         setTotal(d.total ?? 0)
+        setSource(d.source ?? '')
+        setCached(d.cached ?? false)
         setHasSearched(true)
       })
       .catch(() => {})
@@ -62,9 +67,33 @@ export function CatalogoProductos() {
         <h2 className="text-xl font-bold text-emerald-700 flex items-center gap-2">
           <Database className="w-5 h-5" /> Catálogo de Productos
         </h2>
-        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-          {total.toLocaleString('es-VE')} productos
-        </Badge>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+            {total.toLocaleString('es-VE')} productos
+          </Badge>
+          {source && (
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+              Fuente: {source} {cached ? '(cache)' : ''}
+            </Badge>
+          )}
+          <Button asChild variant="outline" size="sm">
+            <a href="https://docs.google.com/spreadsheets/d/18jZAZ10ydSw11EJ4_bLT0KKQnx2k-NrXRY2Z8IfVKFg/edit#gid=PRODUCTOS" target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="w-3 h-3 mr-1" />
+              Abrir en Sheets
+            </a>
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => cargarProductos(query)} disabled={loading}>
+            <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Refrescar
+          </Button>
+        </div>
+      </div>
+
+      {/* Banner informativo */}
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-xs text-blue-800">
+        💡 <b>¿Quieres actualizar productos?</b> Edita directamente la hoja "Productos" en tu Google Sheet.
+        Los cambios se reflejan aquí automáticamente en 10 minutos (caché).
+        Para forzar la recarga inmediata, haz click en "Refrescar".
       </div>
 
       <div className="mb-3 flex items-center gap-2">
@@ -94,6 +123,7 @@ export function CatalogoProductos() {
                 <TableHead className="text-white">Descripción</TableHead>
                 <TableHead className="text-white">U.M</TableHead>
                 <TableHead className="text-white">Ubicación</TableHead>
+                <TableHead className="text-white">Categoría</TableHead>
                 <TableHead className="text-white text-right">Costo</TableHead>
               </TableRow>
             </TableHeader>
@@ -109,6 +139,7 @@ export function CatalogoProductos() {
                   <TableCell className="font-medium">{p.descripcion}</TableCell>
                   <TableCell className="text-xs">{p.um ?? '-'}</TableCell>
                   <TableCell className="text-xs">{p.ubicacion ?? '-'}</TableCell>
+                  <TableCell className="text-xs">{p.categoria ?? '-'}</TableCell>
                   <TableCell className="text-right font-medium">
                     {p.costo ? `$${p.costo.toFixed(2)}` : '-'}
                   </TableCell>
