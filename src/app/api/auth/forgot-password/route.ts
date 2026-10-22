@@ -3,8 +3,8 @@ import { readRange, appendRow, deleteRow, findRowByValue } from '@/lib/google-sh
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 
-// Tiempo de expiración del token (1 hora)
-const TOKEN_EXPIRES_MS = 60 * 60 * 1000
+// Tiempo de expiración del token (30 minutos por seguridad)
+const TOKEN_EXPIRES_MS = 30 * 60 * 1000
 
 /**
  * POST /api/auth/forgot-password
@@ -67,6 +67,14 @@ export async function POST(req: Request) {
     const host = req.headers.get('origin') ?? 'https://planilla-de-ventas.vercel.app'
     const resetUrl = `${host}/?reset=${token}`
 
+    // Calcular fecha/hora de vencimiento para mostrar al usuario
+    const expiresDate = new Date(expiresAt)
+    const expiresStr = expiresDate.toLocaleString('es-VE', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      timeZone: 'America/Caracas',
+    })
+
     // Obtener el API key de Resend:
     // 1. Primero de variable de entorno (RESEND_API_KEY)
     // 2. Si no, leer del Google Sheet "Configuracion"
@@ -111,8 +119,16 @@ export async function POST(req: Request) {
               </p>
               <p>O copia y pega esta URL en tu navegador:</p>
               <p style="word-break: break-all; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">${resetUrl}</p>
+              <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 12px; border-radius: 6px; margin: 16px 0;">
+                <p style="margin: 0; color: #92400e; font-weight: bold;">
+                  ⏰ Por seguridad, este enlace expira en 30 minutos
+                </p>
+                <p style="margin: 4px 0 0 0; color: #92400e; font-size: 12px;">
+                  Vence el: <b>${expiresStr}</b> (hora de Venezuela)
+                </p>
+              </div>
               <p style="color: #6b7280; font-size: 12px; margin-top: 24px;">
-                Este enlace expira en 1 hora. Si no solicitaste este cambio, ignora este correo.
+                Si no solicitaste este cambio, ignora este correo. Nadie más puede usar este enlace.
               </p>
               <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
               <p style="color: #6b7280; font-size: 12px;">Plantilla de Ventas</p>
@@ -134,6 +150,8 @@ export async function POST(req: Request) {
           ok: true,
           message: `✅ Email enviado a ${email}. Revisa tu correo (incluyendo spam) para restablecer tu contraseña.`,
           resetUrl, // también devolver el link como respaldo
+          expiresAt: expiresAt,
+          expiresStr: expiresStr,
         })
       } catch (e: any) {
         console.error('[forgot-password] Error con Resend:', e)
@@ -150,6 +168,8 @@ export async function POST(req: Request) {
       ok: true,
       message: 'Modo demo: el email no se envió porque no está configurado RESEND_API_KEY.',
       resetUrl,
+      expiresAt: expiresAt,
+      expiresStr: expiresStr,
     })
   } catch (e: any) {
     console.error('Forgot password error:', e)

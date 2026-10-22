@@ -28,7 +28,7 @@ export function LoginForm({ onLogin }: { onLogin: (user: { id: string; username:
   const [forgotOpen, setForgotOpen] = useState(false)
   const [forgotUsername, setForgotUsername] = useState('')
   const [forgotSending, setForgotSending] = useState(false)
-  const [forgotResult, setForgotResult] = useState<{ ok: boolean; message: string; resetUrl?: string } | null>(null)
+  const [forgotResult, setForgotResult] = useState<{ ok: boolean; message: string; resetUrl?: string; expiresStr?: string } | null>(null)
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -75,7 +75,8 @@ export function LoginForm({ onLogin }: { onLogin: (user: { id: string; username:
         setForgotResult({
           ok: true,
           message: data.message ?? 'Solicitud procesada',
-          resetUrl: data.resetUrl, // solo en modo demo
+          resetUrl: data.resetUrl,
+          expiresStr: data.expiresStr,
         })
       } else {
         setForgotResult({
@@ -187,6 +188,13 @@ export function LoginForm({ onLogin }: { onLogin: (user: { id: string; username:
                   <p className={forgotResult.ok ? 'text-emerald-700 font-medium' : 'text-red-700 font-medium'}>
                     {forgotResult.message}
                   </p>
+                  {forgotResult.expiresStr && (
+                    <div className="p-2 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-800">
+                      ⏰ <b>Por seguridad, el link expira en 30 minutos</b>
+                      <br/>
+                      Vence el: <b>{forgotResult.expiresStr}</b> (hora de Venezuela)
+                    </div>
+                  )}
                   {forgotResult.resetUrl && (
                     <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-md">
                       <p className="text-xs font-semibold text-emerald-800 mb-2">
